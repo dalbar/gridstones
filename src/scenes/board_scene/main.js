@@ -9,13 +9,18 @@ import {
 import { modify_slot, has_match, pattern1, matches_any_pattern } from "./gridstones.bs";
 import PatternCard from "./pattern_card";
 import marble from "../../assets/tileGrey_30.png";
-import deck from "./deck";
+import { createDeck } from "./deck";
 import check from "../../assets/green_checkmark.png";
 
 const GRID_W = 6;
 const GRID_H = 6;
 
-const initMarble = () => ({ state: "destroyed", sprite: null });
+const EMPTY = 0;
+const PLACED = 1;
+const NEW = 2;
+const LOCKED = 3;
+
+const initMarble = () => ({ state: EMPTY, sprite: null });
 
 export default class MainScene extends Phaser.Scene {
   constructor() {
@@ -26,6 +31,7 @@ export default class MainScene extends Phaser.Scene {
     this.boardMatrix = get_n_m_board(GRID_H, GRID_W);
     this.draw_board = this.drawBoard.bind(this);
     this.preload = this.preload.bind(this);
+    this.deck = createDeck();
     this.transform_image_coordinates = this.transform_image_coordinates.bind(
       this
     );
@@ -89,16 +95,30 @@ export default class MainScene extends Phaser.Scene {
     const y = this.sys.canvas.height * 0.8;
     const startingHand = 5;
     this.cards = [...Array(startingHand).keys()].map(
-      i => new PatternCard({ pattern: deck[i], scene: this })
+      i => new PatternCard({ pattern: this.deck.pop(0), scene: this })
     );
     this.cards.forEach((card, i) => {
       card.x = width * i + padding * i;
       card.y = y;
       card.width = width;
       card.heigth = width;
-      console.log(card);
       card.drawCard();
     });
+  }
+
+  drawEndScreen(){
+    const { width, height } = this.sys.canvas;
+    const endScreenContainer = this.add.container();
+    const overlay = this.add.graphics();
+    overlay.fillStyle(parseInt("757575", 16), 0.1);
+    overlay.fillRect(0,0,width,height)
+
+    endScreenContainer.add(overlay);
+
+    const winText = this.add.text(16, 32, `You won the game!`, { fontSize: '32px', fill: '#fff59d' });
+    winText.setPosition(width/2, height/2);
+    winText.setOrigin(0.5,0.5);
+
   }
   addBoardEvents() {
     this.board.forEach(slot => {
@@ -107,31 +127,46 @@ export default class MainScene extends Phaser.Scene {
   }
 
   clearMarble(marble) {
-    marble.state = "destroyed";
+    marble.state = "";
     marble.sprite.destroy();
   }
 
   handleSlotClick(slot) {
-    const { zone, x_idx, y_idx } = slot;
+    const { zone, x_idx, y_idx, marble } = slot;
     const { x, y } = zone;
-    if (slot.marble.state !== "destroyed") {
-      slot.marble.state = "destroyed";
-      slot.marble.sprite.destroy();
-      modify_slot(this.boardMatrix, [x_idx, y_idx], 0);
+    if(marble.state === LOCKED ||marble.state === NEW){
+      return
+    }
+    const newState = modify_slot(this.boardMatrix, [x_idx, y_idx], marble.state);
+    if (newState === EMPTY) {
+      marble.sprite.destroy();
     } else {
       const [mWidth, mHeight] = this.marbleDim;
       const marbleSprite = this.add.sprite(x, y, "marble");
       this.boardContainer.add(marbleSprite);
       marbleSprite.displayHeight = mHeight;
       marbleSprite.displayWidth = mWidth;
-      slot.marble = { state: "new", sprite: marbleSprite };
-      modify_slot(this.boardMatrix, [x_idx, y_idx], 1);
+      marble.sprite = marbleSprite;
     }
-    const matches = matches_any_pattern(this.boardMatrix, deck);
+    const patterns = this.cards.map(card => card.pattern);
+    const matches = matches_any_pattern(this.boardMatrix, patterns);
     if(matches.length > 0){
       const [ [ index ]] = matches;
       this.cards[index].drawDoneOverlay();
+      this.cards.splice(index, 1)
     }
+    this.finishTurn();
+    marble.state = newState;
+
+  }
+
+  finishTurn(){
+    console.log("next turn")
+    this.board.forEach( slot => {
+      if (slot.marble.state === NEW){
+        slot.marble.state = PLACED;
+      }
+    })
   }
 
   transform_image_coordinates(x, y) {
@@ -161,10 +196,17 @@ export default class MainScene extends Phaser.Scene {
     );
     this.addBoardEvents();
     this.drawHand();
-    const scoreText = this.add.text(16, 16, `opponent's cards left: 5`, { fontSize: '16px', fill: '#000' });
+    this.ownScore = this.add.text(16, 16, ``, { fontSize: '16px', fill: '#000' });
+    this.enemyScore = this.add.text(16, 32, `opponent's cards left: 5`, { fontSize: '16px', fill: '#000' });
   }
 
-  update() {}
+  update() {
+    this.ownScore.text = `my cards left: ${this.cards.length}`;
+    if(this.cards.length === 0){
+      // restart game
+      this.drawEndScreen();
+    }
+  }
 }
 
 if (module.hot) {

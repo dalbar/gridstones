@@ -2,10 +2,12 @@ open Board_utils
 open Belt_Array
 
 type aoi = { min_x: int; min_y: int; max_x: int; max_y: int}
-type slot_value = SET | EMPTY
-  type action = PLACE | REMOVE
+
+type action = PLACE | REMOVE
 
 type move = { action: action; position: Board_utils.coordinates}
+
+type states = EMPTY | PLACED | NEW | LOCKED
 
 let area_of_interest position grid_size =
   let zero_cap x = max x 0 in 
@@ -22,8 +24,12 @@ let has_match board_state pattern =
 let matches_any_pattern board_state patterns = 
   mapWithIndex patterns (fun i pattern -> ( i, has_match board_state pattern)) |. keep (fun (_, hasMatch) ->  hasMatch)
   
-let modify_slot board_state position value = 
-  board_state.(position.y).(position.x) <- value
+let modify_slot board_state position state = 
+  match state with 
+  | EMPTY -> board_state.(position.y).(position.x) <- 1; NEW
+  | PLACED -> board_state.(position.y).(position.x) <- 0; EMPTY
+  | NEW -> NEW
+  | LOCKED -> LOCKED
 
 let pattern1 = 
   let p1 = make 3 (-1) |. map (make 3) in
