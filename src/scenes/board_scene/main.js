@@ -6,6 +6,7 @@ import {
   color_map,
   get_n_m_board
 } from "./board_utils.bs";
+import { get_value, idAction, playersAction } from "../../state.bs";
 import { modify_slot, has_match, pattern1, matches_any_pattern } from "./gridstones.bs";
 import PatternCard from "./pattern_card";
 import marble from "../../assets/tileGrey_30.png";
@@ -23,15 +24,18 @@ const LOCKED = 3;
 const initMarble = () => ({ state: EMPTY, sprite: null });
 
 export default class MainScene extends Phaser.Scene {
-  constructor() {
+  constructor(config) {
     super({
-      key: "Main"
+      key: "board"
     });
-    this.board = [];
-    this.boardMatrix = get_n_m_board(GRID_H, GRID_W);
     this.draw_board = this.drawBoard.bind(this);
     this.preload = this.preload.bind(this);
+    this.init = this.init.bind(this);
+    this.handleUpdateScores = this.handleUpdateScores.bind(this);
+    this.board = [];
+    this.boardMatrix = get_n_m_board(GRID_H, GRID_W);
     this.deck = createDeck();
+    this.players = [];
     this.transform_image_coordinates = this.transform_image_coordinates.bind(
       this
     );
@@ -178,6 +182,13 @@ export default class MainScene extends Phaser.Scene {
     );
   }
 
+  init(config) {
+    this.playerSubscribtionIdx = config.subscribe(playersAction, state => {
+      this.players = get_value(state, playersAction)
+    });
+    this.idSubscribtionIdx = config.subscribe(idAction, state => this.id = get_value(state, idAction))
+  }
+
   preload() {
     this.load.image("board", board);
     this.load.image("marble", marble);
@@ -192,16 +203,25 @@ export default class MainScene extends Phaser.Scene {
       boardWidth,
       boardHeight,
       0.1 * this.sys.canvas.width,
-      0.1 * this.sys.canvas.height
+      0.15 * this.sys.canvas.height
     );
     this.addBoardEvents();
     this.drawHand();
-    this.ownScore = this.add.text(16, 16, ``, { fontSize: '16px', fill: '#000' });
-    this.enemyScore = this.add.text(16, 32, `opponent's cards left: 5`, { fontSize: '16px', fill: '#000' });
+    this.scores = [0, 0, 0, 0].map((_, idx) => this.addScoreText(16, 16 + 16 * idx));
+  }
+
+  addScoreText (x,y) { 
+    return this.add.text(x, y, ``, { fontSize: '16px', fill: '#000' });
+  }
+
+  handleUpdateScores(){
+    this.players.forEach(({id, score}, idx) => {
+      this.scores[idx].text = `Player${idx + 1} : ${score} ${id === this.id ? "(me)": ""}`;
+    })
   }
 
   update() {
-    this.ownScore.text = `my cards left: ${this.cards.length}`;
+    this.handleUpdateScores();
     if(this.cards.length === 0){
       // restart game
       this.drawEndScreen();
