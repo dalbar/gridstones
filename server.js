@@ -4,37 +4,58 @@ const uuidv4 = require('uuid/v4')
 const wss = new WebSocket.Server({ port: 8080 });
 const players = new Map();
 const playOrder = [];
+let curPlayer = 0;
 
-const gameState = 0
+
+let gameState = "waiting"
 
 const broadcast = message => {
   players.forEach(player => player.ws.send(message));
 }
 
 const hanldeMessage = (message, ws) => {
-  console.log(message);
   switch(message.type){
-    case "register": 
-      handleRegister(ws);
+    case "REGISTER": 
+      if(gameState !== "start") handleRegister(ws);
+      ws.send(JSON.stringify({ type: "PHASE", phase: gameState}));
       break;
-    case "quit": 
-      console.log("quit")
+    case "PHASE":
+      if(message.phase === "start") handleStart(); 
+      break;
+    case "MOVE":
+      const move = JSON.parse(message.move);
+      handleMove(move);
   }
 }
 
 const filterGameRelevant = ({ id, score }) => {
   return { score, id }
 }
-const handleRegister = ws => {
-  if(gameState === 0){
-    const playerID = uuidv4();
-    players.set(playerID, { ws: ws, score: 5, id: playerID});
-    playOrder.push(playerID);
-    ws.playerID = playerID;
-    const message = JSON.stringify({id: playerID, type: "ID"})
-    ws.send(message);
-    broadcastAllPlayers();
+
+const handleStart = () => {
+  if(players.size > 1){
+    gameState = "start";
+    broadcast(JSON.stringify({ type: "PHASE", phase: "start" }));
+    players.forEach((_, id) => playOrder.push(id));
+    const move =  JSON.stringify({x: -1, y: -1, nextPlayer: playOrder[curPlayer]});
+    broadcast(JSON.stringify({ type: "MOVE", move: move }))
   }
+}
+
+const handleMove = ({x, y}) => {
+  curPlayer = (curPlayer + 1) % playOrder.length;
+  const move =  JSON.stringify({x: x, y: y, nextPlayer: playOrder[curPlayer]});
+  broadcast(JSON.stringify({ type: "MOVE", move: move }))
+
+}
+
+const handleRegister = ws => {
+  const playerID = uuidv4();
+  players.set(playerID, { ws: ws, score: 5, id: playerID});
+  ws.playerID = playerID;
+  const message = JSON.stringify({id: playerID, type: "ID"})
+  ws.send(message);
+  broadcastAllPlayers();
 }
 
 broadcastAllPlayers = () => {

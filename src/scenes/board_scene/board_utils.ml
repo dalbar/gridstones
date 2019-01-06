@@ -1,7 +1,6 @@
 (** This module contains various utility functions outside of the actual game logic.*)
 
 open Belt_Array 
-open Js_console
 
 type coordinates = { x: int; y: int}
 type size = { width: float; height: float}
@@ -11,7 +10,7 @@ let transform_world_to_image_coords x y canvas_width canvas_height = {x = canvas
 
 let get_n_m_board n m = make m 0 |. map (make n)
 
-let scale_marble_size board_width board_height ?padding:(p = 0.0) = { width = board_width /. 6.0 -. p; height = board_height /. 6.0 -. p }
+let scale_marble_size  board_width board_height p = { width = board_width /. 6.0 -. p; height = board_height /. 6.0 -. p }
 
 let dot_product m1 m2 =
   let flattened_m1 = concatMany m1 in 

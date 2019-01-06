@@ -55,10 +55,16 @@ var idAction = "ID";
 
 var playersAction = "PLAYERS";
 
+var turnAction = "TURN";
+
+var gamePhaseAction = "PHASE";
+
 export {
   moveAction ,
   idAction ,
   playersAction ,
+  turnAction ,
+  gamePhaseAction ,
   initMap ,
   update_state ,
   dispatch ,

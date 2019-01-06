@@ -6,7 +6,7 @@ import {
   color_map,
   get_n_m_board
 } from "./board_utils.bs";
-import { get_value, idAction, playersAction } from "../../state.bs";
+import { get_value, idAction, playersAction, moveAction } from "../../state.bs";
 import { modify_slot, has_match, pattern1, matches_any_pattern } from "./gridstones.bs";
 import PatternCard from "./pattern_card";
 import marble from "../../assets/tileGrey_30.png";
@@ -40,6 +40,8 @@ export default class MainScene extends Phaser.Scene {
       this
     );
     this.drawHand = this.drawHand.bind(this);
+    this.handleMove = this.handleMove.bind(this);
+    this.isTurn = false;
   }
 
   drawBoard(w, h, x_offset = 0, y_offset = 0) {
@@ -126,7 +128,11 @@ export default class MainScene extends Phaser.Scene {
   }
   addBoardEvents() {
     this.board.forEach(slot => {
-      slot.zone.on("pointerdown", () => this.handleSlotClick(slot));
+      slot.zone.on("pointerdown", () => {
+        if(this.isTurn) {
+          this.sendMove(slot.x_idx, slot.y_idx);
+          this.handleSlotClick(slot)}
+        });
     });
   }
 
@@ -136,6 +142,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   handleSlotClick(slot) {
+    console.log(slot);
     const { zone, x_idx, y_idx, marble } = slot;
     const { x, y } = zone;
     if(marble.state === LOCKED ||marble.state === NEW){
@@ -165,7 +172,6 @@ export default class MainScene extends Phaser.Scene {
   }
 
   finishTurn(){
-    console.log("next turn")
     this.board.forEach( slot => {
       if (slot.marble.state === NEW){
         slot.marble.state = PLACED;
@@ -183,12 +189,21 @@ export default class MainScene extends Phaser.Scene {
   }
 
   init(config) {
-    this.playerSubscribtionIdx = config.subscribe(playersAction, state => {
-      this.players = get_value(state, playersAction)
-    });
-    this.idSubscribtionIdx = config.subscribe(idAction, state => this.id = get_value(state, idAction))
+    this.players = config.players;
+    this.id = config.id;
+    this.sendMove = config.sendMove;
+    this.moveSunscriptionIdx = config.subscribe(moveAction, 
+      state => this.handleMove(state))
   }
 
+  handleMove(state){
+    const { x, y, nextPlayer } = get_value(state, moveAction);
+    if(x > 0 && y > 0 && !this.isTurn){
+      this.handleSlotClick(this.board[y * GRID_H + x]);
+    }
+    this.isTurn = nextPlayer === this.id ? true: false;
+    this.nextPlayer = nextPlayer;
+  }
   preload() {
     this.load.image("board", board);
     this.load.image("marble", marble);
@@ -216,6 +231,7 @@ export default class MainScene extends Phaser.Scene {
 
   handleUpdateScores(){
     this.players.forEach(({id, score}, idx) => {
+      this.scores[idx].setFontStyle( this.nextPlayer === id ? 'bold': '');
       this.scores[idx].text = `Player${idx + 1} : ${score} ${id === this.id ? "(me)": ""}`;
     })
   }

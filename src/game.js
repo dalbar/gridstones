@@ -1,6 +1,7 @@
 import Phaser from "phaser";
-import Main from "./scenes/board_scene/main";
- 
+import Board from "./scenes/board_scene";
+import Menu from "./scenes/menu"
+
 class MyGame extends Phaser.Game {
   constructor() {
     super({
@@ -8,10 +9,13 @@ class MyGame extends Phaser.Game {
       height: 800,
       type: Phaser.AUTO,
       backgroundColor: '#f3cca3',
-      scene: [Main]
+      scene: [Menu, Board]
     });
   }
 }
 const game = new MyGame();
 
 export default game;
+
+
+//      backgroundColor: '#f3cca3',

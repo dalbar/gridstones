@@ -17,8 +17,7 @@ function get_n_m_board(n, m) {
               }));
 }
 
-function scale_marble_size(board_width, board_height, $staropt$star) {
-  var p = $staropt$star !== undefined ? $staropt$star : 0.0;
+function scale_marble_size(board_width, board_height, p) {
   return /* record */[
           /* width */board_width / 6.0 - p,
           /* height */board_height / 6.0 - p

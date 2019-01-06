@@ -7,6 +7,10 @@ let idAction = "ID"
 
 let playersAction = "PLAYERS"
 
+let turnAction = "TURN"
+
+let gamePhaseAction = "PHASE"
+
 let initMap () = Belt_MapString.empty
 
 let update_state state key data =
