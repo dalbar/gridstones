@@ -1,9 +1,11 @@
 const WebSocket = require('ws');
-const uuidv4 = require('uuid/v4')
+const uuidv4 = require('uuid/v4');
+const decks = require('./deck');
 
 const wss = new WebSocket.Server({ port: 8080 });
 const players = new Map();
 const playOrder = [];
+const curDeck = decks.createDeck();
 let curPlayer = 0;
 
 
@@ -36,7 +38,10 @@ const handleStart = () => {
   if(players.size > 1){
     gameState = "start";
     broadcast(JSON.stringify({ type: "PHASE", phase: "start" }));
-    players.forEach((_, id) => playOrder.push(id));
+    players.forEach((value, id) => {
+      playOrder.push(id);
+      dealHand(value.ws);
+    });
     const move =  JSON.stringify({x: -1, y: -1, nextPlayer: playOrder[curPlayer]});
     broadcast(JSON.stringify({ type: "MOVE", move: move }))
   }
@@ -58,6 +63,17 @@ const handleRegister = ws => {
   broadcastAllPlayers();
 }
 
+const dealHand = ws => {
+  const getRandomInt = max => {
+    return Math.floor(Math.random() * Math.floor(max));
+  };
+  const hand = [...Array(5).keys()].map( () => 
+    curDeck.splice(getRandomInt(curDeck.length - 1), 1)[0] 
+  );
+
+  ws.send(JSON.stringify({ type: "HAND", hand: JSON.stringify(hand)}));
+
+}
 broadcastAllPlayers = () => {
   const gameRelevantMessage = [];
   players.forEach( value => gameRelevantMessage.push(filterGameRelevant(value)));

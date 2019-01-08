@@ -6,12 +6,11 @@ import {
   color_map,
   get_n_m_board
 } from "./board_utils.bs";
-import { get_value, idAction, playersAction, moveAction } from "../../state.bs";
+import { get_value, idAction, playersAction, moveAction, handAction } from "../../state.bs";
 import { modify_slot, has_match, pattern1, matches_any_pattern } from "./gridstones.bs";
-import PatternCard from "./pattern_card";
 import marble from "../../assets/tileGrey_30.png";
-import { createDeck } from "./deck";
 import check from "../../assets/green_checkmark.png";
+import PatternCard from "./pattern_card";
 
 const GRID_W = 6;
 const GRID_H = 6;
@@ -34,7 +33,6 @@ export default class MainScene extends Phaser.Scene {
     this.handleUpdateScores = this.handleUpdateScores.bind(this);
     this.board = [];
     this.boardMatrix = get_n_m_board(GRID_H, GRID_W);
-    this.deck = createDeck();
     this.players = [];
     this.transform_image_coordinates = this.transform_image_coordinates.bind(
       this
@@ -94,14 +92,14 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  drawHand() {
+  drawHand(state) {
+    const patterns = get_value(state, handAction);
     this.handContainer = this.add.container();;
     const padding = 20;
     const width = this.sys.canvas.width / 5 - padding;
     const y = this.sys.canvas.height * 0.8;
-    const startingHand = 5;
-    this.cards = [...Array(startingHand).keys()].map(
-      i => new PatternCard({ pattern: this.deck.pop(0), scene: this })
+    this.cards = patterns.map(
+      pattern => new PatternCard({ pattern, scene: this })
     );
     this.cards.forEach((card, i) => {
       card.x = width * i + padding * i;
@@ -192,8 +190,9 @@ export default class MainScene extends Phaser.Scene {
     this.players = config.players;
     this.id = config.id;
     this.sendMove = config.sendMove;
-    this.moveSunscriptionIdx = config.subscribe(moveAction, 
+    this.moveSubscriptionIdx = config.subscribe(moveAction, 
       state => this.handleMove(state))
+    this.handSubscriptionIdx = config.subscribe(handAction, state => this.drawHand(state))
   }
 
   handleMove(state){
@@ -221,7 +220,6 @@ export default class MainScene extends Phaser.Scene {
       0.15 * this.sys.canvas.height
     );
     this.addBoardEvents();
-    this.drawHand();
     this.scores = [0, 0, 0, 0].map((_, idx) => this.addScoreText(16, 16 + 16 * idx));
   }
 
@@ -238,7 +236,7 @@ export default class MainScene extends Phaser.Scene {
 
   update() {
     this.handleUpdateScores();
-    if(this.cards.length === 0){
+    if(this.cards && this.cards.length === 0){
       // restart game
       this.drawEndScreen();
     }

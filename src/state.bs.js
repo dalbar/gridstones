@@ -59,12 +59,15 @@ var turnAction = "TURN";
 
 var gamePhaseAction = "PHASE";
 
+var handAction = "HAND";
+
 export {
   moveAction ,
   idAction ,
   playersAction ,
   turnAction ,
   gamePhaseAction ,
+  handAction ,
   initMap ,
   update_state ,
   dispatch ,
