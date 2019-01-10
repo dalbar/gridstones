@@ -6,8 +6,7 @@ let gameState = initMap();
 let listeners = initMap();
 
 socket.addEventListener('open',  () => {
-  const message = { type: "REGISTER" };
-  socket.send(JSON.stringify(message));
+  game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
 });
 
 socket.addEventListener('message', event => {
@@ -15,6 +14,10 @@ socket.addEventListener('message', event => {
   handleEvent(parsed);
 });
 
+const handleRegister = () => {
+  const message = { type: "REGISTER" };
+  socket.send(JSON.stringify(message));
+}
 const handleEvent = data => {
   switch(data.type){
     case "ID": gameState = dispatchGameState(idAction, data.id); break;
@@ -46,4 +49,3 @@ const sendWinner = (id) => {
   socket.send(JSON.stringify({type: "WINNER", id}))
 }
 
-game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner});

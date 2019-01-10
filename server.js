@@ -18,7 +18,7 @@ const broadcast = message => {
 const hanldeMessage = (message, ws) => {
   switch (message.type) {
     case "REGISTER":
-      if (gameState !== "start") handleRegister(ws);
+      if (gameState !== "start" && players.size < 4) handleRegister(ws);
       ws.send(JSON.stringify({ type: "PHASE", phase: gameState }));
       break;
     case "PHASE":
@@ -30,6 +30,8 @@ const hanldeMessage = (message, ws) => {
       break;
     case "WINNER":
       broadcast(JSON.stringify(message));
+      playOrder.splice(0, playOrder.length);
+      gameState = "waiting"
       break;
   }
 }

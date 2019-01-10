@@ -13,6 +13,12 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   init(config) {
+    if(config.id){
+      this.id = config.id;
+    }
+    else{
+      config.handleRegister();
+    }
     this.config = config;
     this.playerSubscriptionIdx = config.subscribe(playersAction, state => {
       this.players = get_value(state, playersAction)

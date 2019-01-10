@@ -114,7 +114,7 @@ export default class MainScene extends Phaser.Scene {
 
   startEndScreen(id) {
     this.game.scene.stop('board');
-    this.game.scene.start('end', { isLost: id !== this.id });
+    this.game.scene.start('end', { ...this.config, isLost: id !== this.id });
   }
 
   addBoardEvents() {
@@ -178,6 +178,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   init(config) {
+    this.config = config;
     this.players = config.players;
     this.id = config.id;
     this.sendMove = config.sendMove;
@@ -197,13 +198,34 @@ export default class MainScene extends Phaser.Scene {
     this.nextPlayer = nextPlayer;
   }
 
+  lockSlot(x, y){
+    this.board[getBoardIdx(x, y)].marble.state = LOCKED;
+  }
+
+  lockRow(idx){
+    if(idx < GRID_H){
+      for(let i = 0; i < GRID_W; i++) {
+        this.lockSlot(i, idx)
+      }
+    }
+  }
+
+  lockCol(idx){
+    if(idx < GRID_W){
+      for(let j = 0; j < GRID_H; j++ ){
+        this.lockSlot(idx, j)
+      }    
+    }
+  }
+
   restrictBoard() {
     if (this.players.length < 4) {
-      let j = GRID_H - 1;
-      // lock last row
-      for (let i = 0; i < GRID_W; i++) {
-        this.board[getBoardIdx(i, j)].marble.state = LOCKED;
-      }
+      this.lockRow(GRID_H - 1)
+      this.lockCol(GRID_W - 1)
+    }
+    if (this.players.length < 3){
+      this.lockCol(0);
+      this.lockRow(0);
     }
   }
   preload() {
