@@ -7,7 +7,7 @@ import {
   get_n_m_board
 } from "../../ml/board_utils.bs";
 import { get_value, moveAction, winnerAction } from "../../ml/state.bs";
-import { modify_slot, has_match, pattern1, matches_any_pattern } from "../../ml/gridstones.bs";
+import { modify_slot, matches_any_pattern } from "../../ml/gridstones.bs";
 import marble from "../../assets/tileGrey_30.png";
 import check from "../../assets/green_checkmark.png";
 import PatternCard from "./pattern_card";
