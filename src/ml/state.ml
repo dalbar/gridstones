@@ -13,6 +13,8 @@ let gamePhaseAction = "PHASE"
 
 let handAction = "HAND"
 
+let winnerAction = "WINNER"
+
 let initMap () = Belt_MapString.empty
 
 let update_state state key data =

@@ -5,9 +5,9 @@ import {
   scale_marble_size,
   color_map,
   get_n_m_board
-} from "./board_utils.bs";
-import { get_value, idAction, playersAction, moveAction, handAction } from "../../state.bs";
-import { modify_slot, has_match, pattern1, matches_any_pattern } from "./gridstones.bs";
+} from "../../ml/board_utils.bs";
+import { get_value, moveAction, winnerAction } from "../../ml/state.bs";
+import { modify_slot, has_match, pattern1, matches_any_pattern } from "../../ml/gridstones.bs";
 import marble from "../../assets/tileGrey_30.png";
 import check from "../../assets/green_checkmark.png";
 import PatternCard from "./pattern_card";
@@ -21,6 +21,8 @@ const NEW = 2;
 const LOCKED = 3;
 
 const initMarble = () => ({ state: EMPTY, sprite: null });
+
+const getBoardIdx = (x, y) => y * GRID_H + x;
 
 export default class MainScene extends Phaser.Scene {
   constructor(config) {
@@ -92,8 +94,8 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  drawHand(state) {
-    const patterns = get_value(state, handAction);
+  drawHand() {
+    const patterns = this.hand;
     this.handContainer = this.add.container();;
     const padding = 20;
     const width = this.sys.canvas.width / 5 - padding;
@@ -110,27 +112,18 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
-  drawEndScreen(){
-    const { width, height } = this.sys.canvas;
-    const endScreenContainer = this.add.container();
-    const overlay = this.add.graphics();
-    overlay.fillStyle(parseInt("757575", 16), 0.1);
-    overlay.fillRect(0,0,width,height)
-
-    endScreenContainer.add(overlay);
-
-    const winText = this.add.text(16, 32, `You won the game!`, { fontSize: '32px', fill: '#fff59d' });
-    winText.setPosition(width/2, height/2);
-    winText.setOrigin(0.5,0.5);
-
+  startEndScreen(id) {
+    this.game.scene.stop('board');
+    this.game.scene.start('end', { isLost: id !== this.id });
   }
+
   addBoardEvents() {
     this.board.forEach(slot => {
       slot.zone.on("pointerdown", () => {
-        if(this.isTurn) {
-          this.sendMove(slot.x_idx, slot.y_idx);
-          this.handleSlotClick(slot)}
-        });
+        if (this.isTurn) {
+          this.handleSlotClick(slot)
+        }
+      });
     });
   }
 
@@ -140,41 +133,39 @@ export default class MainScene extends Phaser.Scene {
   }
 
   handleSlotClick(slot) {
-    console.log(slot);
     const { zone, x_idx, y_idx, marble } = slot;
     const { x, y } = zone;
-    if(marble.state === LOCKED ||marble.state === NEW){
-      return
+    if (!(marble.state === LOCKED || marble.state === NEW)) {
+      const newState = modify_slot(this.boardMatrix, [x_idx, y_idx], marble.state);
+      if (newState === EMPTY) {
+        marble.sprite.destroy();
+      } else {
+        const [mWidth, mHeight] = this.marbleDim;
+        const marbleSprite = this.add.sprite(x, y, "marble");
+        this.boardContainer.add(marbleSprite);
+        marbleSprite.displayHeight = mHeight;
+        marbleSprite.displayWidth = mWidth;
+        marble.sprite = marbleSprite;
+      }
+      const patterns = this.cards.map(card => card.pattern);
+      const matches = matches_any_pattern(this.boardMatrix, patterns);
+      if (matches.length > 0) {
+        const [[index]] = matches;
+        this.cards[index].drawDoneOverlay();
+        this.cards.splice(index, 1)
+      }
+      this.finishTurn(x_idx, y_idx);
+      marble.state = newState;
     }
-    const newState = modify_slot(this.boardMatrix, [x_idx, y_idx], marble.state);
-    if (newState === EMPTY) {
-      marble.sprite.destroy();
-    } else {
-      const [mWidth, mHeight] = this.marbleDim;
-      const marbleSprite = this.add.sprite(x, y, "marble");
-      this.boardContainer.add(marbleSprite);
-      marbleSprite.displayHeight = mHeight;
-      marbleSprite.displayWidth = mWidth;
-      marble.sprite = marbleSprite;
-    }
-    const patterns = this.cards.map(card => card.pattern);
-    const matches = matches_any_pattern(this.boardMatrix, patterns);
-    if(matches.length > 0){
-      const [ [ index ]] = matches;
-      this.cards[index].drawDoneOverlay();
-      this.cards.splice(index, 1)
-    }
-    this.finishTurn();
-    marble.state = newState;
-
   }
 
-  finishTurn(){
-    this.board.forEach( slot => {
-      if (slot.marble.state === NEW){
+  finishTurn(x_idx, y_idx) {
+    this.board.forEach(slot => {
+      if (slot.marble.state === NEW) {
         slot.marble.state = PLACED;
       }
-    })
+    });
+    if(this.isTurn) this.sendMove(x_idx, y_idx);
   }
 
   transform_image_coordinates(x, y) {
@@ -190,18 +181,30 @@ export default class MainScene extends Phaser.Scene {
     this.players = config.players;
     this.id = config.id;
     this.sendMove = config.sendMove;
-    this.moveSubscriptionIdx = config.subscribe(moveAction, 
-      state => this.handleMove(state))
-    this.handSubscriptionIdx = config.subscribe(handAction, state => this.drawHand(state))
+    this.sendWinner = config.sendWinner;
+    this.hand = config.hand;
+    this.moveSubscriptionIdx = config.subscribe(moveAction,
+      state => this.handleMove(state));
+    this.winnerSubscriptionIdx = config.subscribe(winnerAction, state => this.startEndScreen(get_value(state, winnerAction)))
   }
 
-  handleMove(state){
+  handleMove(state) {
     const { x, y, nextPlayer } = get_value(state, moveAction);
-    if(x > 0 && y > 0 && !this.isTurn){
-      this.handleSlotClick(this.board[y * GRID_H + x]);
+    if (x > 0 && y > 0 && !this.isTurn) {
+      this.handleSlotClick(this.board[getBoardIdx(x, y)]);
     }
-    this.isTurn = nextPlayer === this.id ? true: false;
+    this.isTurn = nextPlayer === this.id ? true : false;
     this.nextPlayer = nextPlayer;
+  }
+
+  restrictBoard() {
+    if (this.players.length < 4) {
+      let j = GRID_H - 1;
+      // lock last row
+      for (let i = 0; i < GRID_W; i++) {
+        this.board[getBoardIdx(i, j)].marble.state = LOCKED;
+      }
+    }
   }
   preload() {
     this.load.image("board", board);
@@ -219,26 +222,28 @@ export default class MainScene extends Phaser.Scene {
       0.1 * this.sys.canvas.width,
       0.15 * this.sys.canvas.height
     );
+    this.restrictBoard();
     this.addBoardEvents();
+    this.drawHand();
     this.scores = [0, 0, 0, 0].map((_, idx) => this.addScoreText(16, 16 + 16 * idx));
   }
 
-  addScoreText (x,y) { 
+  addScoreText(x, y) {
     return this.add.text(x, y, ``, { fontSize: '16px', fill: '#000' });
   }
 
-  handleUpdateScores(){
-    this.players.forEach(({id, score}, idx) => {
-      this.scores[idx].setFontStyle( this.nextPlayer === id ? 'bold': '');
-      this.scores[idx].text = `Player${idx + 1} : ${score} ${id === this.id ? "(me)": ""}`;
+  handleUpdateScores() {
+    this.players.forEach(({ id, score }, idx) => {
+      this.scores[idx].setFontStyle(this.nextPlayer === id ? 'bold' : '');
+      this.scores[idx].text = `Player${idx + 1} : ${score} ${id === this.id ? "(me)" : ""}`;
     })
   }
 
   update() {
     this.handleUpdateScores();
-    if(this.cards && this.cards.length === 0){
+    if (this.cards && this.cards.length === 0) {
       // restart game
-      this.drawEndScreen();
+      this.sendWinner(this.id);
     }
   }
 }

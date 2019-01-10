@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { scale_marble_size } from "./board_utils.bs";
+import { scale_marble_size } from "../../ml/board_utils.bs";
 const GRID_W = 3;
 const GRID_H = 3;
 

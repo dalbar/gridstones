@@ -1,5 +1,5 @@
 import game from "./game";
-import { initMap, subscribe, dispatch, idAction, playersAction, moveAction, gamePhaseAction, handAction } from "./state.bs";
+import { initMap, subscribe, dispatch, idAction, playersAction, moveAction, gamePhaseAction, handAction, winnerAction } from "./ml/state.bs";
 
 const socket = new WebSocket('ws://localhost:8080');
 let gameState = initMap();
@@ -22,6 +22,7 @@ const handleEvent = data => {
     case "PHASE": gameState = dispatchGameState(gamePhaseAction, data.phase); break;
     case "MOVE": gameState = dispatchGameState(moveAction, JSON.parse(data.move)); break;
     case "HAND": gameState = dispatchGameState(handAction, JSON.parse(data.hand)); break;
+    case "WINNER": gameState = dispatchGameState(winnerAction, data.id); break;
   }
 }
 
@@ -41,4 +42,8 @@ const sendMove = (x, y) => {
   socket.send(JSON.stringify({type: "MOVE", move: JSON.stringify({ x, y })}))
 }
 
-game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove});
+const sendWinner = (id) => {
+  socket.send(JSON.stringify({type: "WINNER", id}))
+}
+
+game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner});
