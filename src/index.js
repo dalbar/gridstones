@@ -1,11 +1,12 @@
 import game from "./game";
 import { initMap, subscribe, dispatch, idAction, playersAction, moveAction, gamePhaseAction, handAction, winnerAction } from "./ml/state.bs";
 
-const socket = new WebSocket('ws://localhost:8080');
+const socket = new WebSocket('ws://127.0.0.1:8080');
 let gameState = initMap();
 let listeners = initMap();
 
 socket.addEventListener('open',  () => {
+  console.log(open)
   game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
 });
 

@@ -199,7 +199,11 @@ export default class MainScene extends Phaser.Scene {
   }
 
   lockSlot(x, y){
-    this.board[getBoardIdx(x, y)].marble.state = LOCKED;
+    const cur_slot = this.board[getBoardIdx(x, y)];
+    cur_slot.marble.state = LOCKED;
+    const greySpace = this.add.graphics();
+    greySpace.fillStyle("606060", 1);
+    greySpace.fillRect(cur_slot.x, cur_slot.y, cur_slot.width, cur_slot.height);
   }
 
   lockRow(idx){

@@ -1,8 +1,10 @@
+var express = require('express');
+var app = express();
 const WebSocket = require('ws');
 const uuidv4 = require('uuid/v4');
 const decks = require('./deck');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({ host: "127.0.0.1", port: 8080 });
 const players = new Map();
 const playOrder = [];
 const curDeck = decks.createDeck();
@@ -98,3 +100,5 @@ wss.on('connection', function connection(ws) {
   ws.on('close', () => handleClose(ws));
 });
 
+app.use(express.static('dist'))
+app.listen(3000);
