@@ -240,21 +240,21 @@ module Board = struct
 
   let gameObjectFactory = addGet scene
 
-  let draw_board ?(x_offset = 0) ?(y_offset = 0) w h =
-    let board_container = GameObject.container gameObjectFactory in
+  let draw_board ?(x_offset = 0.0) ?(y_offset = 0.0) w h =
+    let board_container = container gameObjectFactory in
     let s_width = w /. grid_w in
     let s_height = w /. grid_h in
     for i = 0 to int_of_float grid_w do
       for j = 0 to int_of_float grid_h do
-        let slot = GameObject.graphics gameObjectFactory in
+        let slot = graphics gameObjectFactory in
         let apply f = slot |. f in
         let fillColor =
           Generator.get_unsafe Utils.color_map j i |. parse_int 16
         in
         let s_x = float_of_int j *. s_width in
         let s_y = float_of_int i *. s_height in
-        let hitZone =
-          GameObject.zone gameObjectFactory
+        let hit_zone =
+          zone gameObjectFactory
             ( s_x +. (0.5 *. s_width)
             , s_y +. (0.5 *. s_height)
             , s_width
@@ -276,18 +276,23 @@ module Board = struct
         apply Graphics.lineTo (s_x, s_y +. s_height);
 
         if j = 0 then (
-          apply Graphics.lineTo (s_x, s_y)
-        )
+          apply Graphics.lineTo (s_x, s_y);
+        );
 
-        
+        apply Graphics.fillRect (float_of_int(j) *. s_width, float_of_int(i) *. s_height, s_width, s_height);
+        apply Graphics.strokePath;
+        set_interactive_zone hit_zone;
+        add_container board_container (`Graphics slot);
+        add_container board_container (`Zone hit_zone);
       done
-    done
+    done;
+    Container.set_position board_container (x_offset, y_offset)
 
   let create =
     let sys = sysGet scene in
     let board_width = sys.canvas.width *. 0.8 in
     let board_height = sys.canvas.width *. 0.8 in
-    board_height
+    draw_board board_width board_height
 end
 
 module State = struct

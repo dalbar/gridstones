@@ -439,7 +439,9 @@ var scene = new Phaser.Scene({
 var gameObjectFactory = scene.add;
 
 function draw_board($staropt$star, $staropt$star$1, w, h) {
-  gameObjectFactory.container();
+  var x_offset = $staropt$star !== undefined ? $staropt$star : 0.0;
+  var y_offset = $staropt$star$1 !== undefined ? $staropt$star$1 : 0.0;
+  var board_container = gameObjectFactory.container();
   var s_width = w / 6.0;
   var s_height = w / 6.0;
   for(var i = 0; i <= 6; ++i){
@@ -448,7 +450,7 @@ function draw_board($staropt$star, $staropt$star$1, w, h) {
       var fillColor = parseInt(get_unsafe(res, j, i), 16);
       var s_x = j * s_width;
       var s_y = i * s_height;
-      gameObjectFactory.zone(/* tuple */[
+      var hit_zone = gameObjectFactory.zone(/* tuple */[
             s_x + 0.5 * s_width,
             s_y + 0.5 * s_height,
             s_width,
@@ -503,15 +505,35 @@ function draw_board($staropt$star, $staropt$star$1, w, h) {
         ];
         slot.lineTo(param$6);
       }
-      
+      var param_000$3 = j * s_width;
+      var param_001$2 = i * s_height;
+      var param$7 = /* tuple */[
+        param_000$3,
+        param_001$2,
+        s_width,
+        s_height
+      ];
+      slot.fillRect(param$7);
+      slot.strokePath();
+      hit_zone.setInteractive();
+      board_container.add(slot);
+      board_container.add(hit_zone);
     }
   }
+  board_container.setPosition(/* tuple */[
+        x_offset,
+        y_offset
+      ]);
   return /* () */0;
 }
 
 var sys = scene.sys;
 
+var board_width = sys[/* canvas */0][/* width */0] * 0.8;
+
 var board_height = sys[/* canvas */0][/* width */0] * 0.8;
+
+var create = draw_board(undefined, undefined, board_width, board_height);
 
 var Board = /* module */[
   /* grid_w */6.0,
@@ -523,7 +545,7 @@ var Board = /* module */[
   /* scene */scene,
   /* gameObjectFactory */gameObjectFactory,
   /* draw_board */draw_board,
-  /* create */board_height
+  /* create */create
 ];
 
 function initMap(param) {

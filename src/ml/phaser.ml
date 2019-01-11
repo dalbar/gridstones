@@ -4,46 +4,48 @@ type style_config = int * float
 
 type pos_config = float * float * float * float
 
-
-
 module GameObject = struct
+  module Zone = struct
+    type zone
+    external zone: unit -> zone = "Zone" [@@bs.new] [@@bs.module]
+  end
 
-  type zone = {x: int; y: int}
-
-  type gameObjectFactory = {setInteractive: unit -> unit }
+  type gameObjectFactory = {setInteractive: unit -> unit}
 
   module Graphics = struct
-  type graphics = {x: float; y: float}
+    type graphics
+    external graphics : unit -> graphics = "Graphics" [@@bs.new] [@@bs.module]
 
-  external lineStyle : graphics -> style_config -> unit = "lineStyle"
-    [@@bs.send]
 
-  external fillStyle : graphics -> style_config -> unit = "fillStyllE"
-    [@@bs.send]
+    external lineStyle : graphics -> style_config -> unit = "lineStyle"
+      [@@bs.send]
 
-  external moveTo : graphics -> position -> unit = "moveTo" [@@bs.send]
+    external fillStyle : graphics -> style_config -> unit = "fillStyllE"
+      [@@bs.send]
 
-  external lineTo : graphics -> position -> unit = "lineTo" [@@bs.send]
+    external moveTo : graphics -> position -> unit = "moveTo" [@@bs.send]
 
-  external strokePath : graphics -> position -> unit = "strokePath" [@@bs.send]
+    external lineTo : graphics -> position -> unit = "lineTo" [@@bs.send]
 
-  external beginPath : graphics -> unit = "beginPath" [@@bs.send]
-end
+    external strokePath : graphics -> unit = "strokePath" [@@bs.send]
 
-module Container = struct 
-  type container = {setPosition: position -> unit}
-end
-    
+    external beginPath : graphics -> unit = "beginPath" [@@bs.send]
+
+    external fillRect : graphics -> pos_config -> unit = "fillRect" [@@bs.send]
+  end
+
+  module Container = struct
+    type container
+    external container : unit -> container = "Container" [@@bs.new] [@@bs.module]
+    external set_position: container -> position -> unit = "setPosition" [@@bs.send]
+  end
+
   open Graphics
   open Container
-
-  type gameObject =
-    | Container of container
-    | Zone of zone
-    | Graphics of graphics
+  open Zone
 
 
-  external add: gameObject -> gameObject -> unit = "add" [@@bs.send]
+  external add_container : container -> ([`Zone of zone | `Graphics of graphics] [@bs.unwrap]) -> unit = "add" [@@bs.send]
 
   external zone : gameObjectFactory -> pos_config -> zone = "zone" [@@bs.send]
 
@@ -51,7 +53,7 @@ end
 
   external container : gameObjectFactory -> container = "container" [@@bs.send]
 
-  external setInteractive : gameObject -> unit = "setInteractive" [@@bs.send]
+  external set_interactive_zone : zone -> unit = "setInteractive" [@@bs.send]
 end
 
 module Scene = struct
