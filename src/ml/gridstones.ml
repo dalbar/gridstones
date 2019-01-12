@@ -25,7 +25,7 @@ let matches_any_pattern board_state patterns =
   |. keep (fun (_, hasMatch) -> hasMatch)
 
 let modify_slot board_state position state =
-  let set_cur_board x y value = set_unsafe board_state x y value in
+  let set_cur_board x y value = Utils.set_unsafe board_state x y value in
   match state with
   | EMPTY ->
       set_cur_board position.x position.y 1 ;

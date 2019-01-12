@@ -1,13 +1,15 @@
 import game from "./game";
+import _Phaser from "./ml/phaser.bs";
 import { initMap, subscribe, dispatch, idAction, playersAction, moveAction, gamePhaseAction, handAction, winnerAction } from "./ml/state.bs";
 
-const socket = new WebSocket('ws://127.0.0.1:8080');
+const socket = new WebSocket('ws://127.0.0.1:8081');
 let gameState = initMap();
 let listeners = initMap();
 
 socket.addEventListener('open',  () => {
-  console.log(open)
-  game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
+  Object.keys(game.scene.keys).forEach(key => console.log(key))
+  //game.scene.start("test1");
+  //game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
 });
 
 socket.addEventListener('message', event => {

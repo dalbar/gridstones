@@ -3,20 +3,26 @@
 
 var Zone = /* module */[];
 
+var Sprite = /* module */[];
+
 var Graphics = /* module */[];
 
 var Container = /* module */[];
 
 var GameObject = /* module */[
   /* Zone */Zone,
+  /* Sprite */Sprite,
   /* Graphics */Graphics,
   /* Container */Container
 ];
+
+var LoaderPlugin = /* module */[];
 
 var Scene = /* module */[];
 
 export {
   GameObject ,
+  LoaderPlugin ,
   Scene ,
   
 }

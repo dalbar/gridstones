@@ -2,7 +2,6 @@
 
 import * as Fs from "fs";
 import * as Curry from "../../node_modules/bs-platform/lib/es6/curry.js";
-import * as Phaser from "phaser";
 import * as Caml_obj from "../../node_modules/bs-platform/lib/es6/caml_obj.js";
 import * as Belt_List from "../../node_modules/bs-platform/lib/es6/belt_List.js";
 import * as Belt_Array from "../../node_modules/bs-platform/lib/es6/belt_Array.js";
@@ -380,174 +379,6 @@ var Utils = /* module */[
   /* color_map */res
 ];
 
-function has_match(board_state, pattern) {
-  var num_stones = Belt_Array.reduce(Belt_Array.concatMany(pattern), 0, (function (acc, slot) {
-          if (slot === 1) {
-            return acc + 1 | 0;
-          } else {
-            return acc;
-          }
-        }));
-  return Belt_Array.some(Belt_Array.concatMany(conv(board_state, pattern)), (function (e) {
-                return e === num_stones;
-              }));
-}
-
-function matches_any_rot(board_state, pattern) {
-  var matches_cur_board = function (p) {
-    return has_match(board_state, p);
-  };
-  return Belt_List.some(Belt_List.map(get_all_rots(pattern), matches_cur_board), (function (isMatch) {
-                return isMatch;
-              }));
-}
-
-function matches_any_pattern(board_state, patterns) {
-  return Belt_Array.keep(Belt_Array.mapWithIndex(patterns, (function (i, pattern) {
-                    return /* tuple */[
-                            i,
-                            matches_any_rot(board_state, pattern)
-                          ];
-                  })), (function (param) {
-                return param[1];
-              }));
-}
-
-function modify_slot(board_state, position, state) {
-  var set_cur_board = function (x, y, value) {
-    return set_unsafe(board_state, x, y, value);
-  };
-  switch (state) {
-    case 0 : 
-        set_cur_board(position[/* x */0], position[/* y */1], 1);
-        return /* NEW */2;
-    case 1 : 
-        set_cur_board(position[/* x */0], position[/* y */1], 0);
-        return /* EMPTY */0;
-    case 2 : 
-        return /* NEW */2;
-    case 3 : 
-        return /* LOCKED */3;
-    
-  }
-}
-
-var scene = new Phaser.Scene({
-      key: "board"
-    });
-
-var gameObjectFactory = scene.add;
-
-function draw_board($staropt$star, $staropt$star$1, w, h) {
-  var x_offset = $staropt$star !== undefined ? $staropt$star : 0.0;
-  var y_offset = $staropt$star$1 !== undefined ? $staropt$star$1 : 0.0;
-  var board_container = gameObjectFactory.container();
-  var s_width = w / 6.0;
-  var s_height = w / 6.0;
-  for(var i = 0; i <= 6; ++i){
-    for(var j = 0; j <= 6; ++j){
-      var slot = gameObjectFactory.graphics();
-      var fillColor = parseInt(get_unsafe(res, j, i), 16);
-      var s_x = j * s_width;
-      var s_y = i * s_height;
-      var hit_zone = gameObjectFactory.zone(/* tuple */[
-            s_x + 0.5 * s_width,
-            s_y + 0.5 * s_height,
-            s_width,
-            s_height
-          ]);
-      slot.lineStyle(/* tuple */[
-            5,
-            1.0
-          ]);
-      var param = /* tuple */[
-        fillColor,
-        1.0
-      ];
-      slot.fillStyllE(param);
-      slot.beginPath();
-      if (i === 0) {
-        var param$1 = /* tuple */[
-          s_x,
-          s_y
-        ];
-        slot.moveTo(param$1);
-        var param_000 = s_x + s_width;
-        var param$2 = /* tuple */[
-          param_000,
-          s_y
-        ];
-        slot.lineTo(param$2);
-      }
-      var param_000$1 = s_x + s_width;
-      var param$3 = /* tuple */[
-        param_000$1,
-        s_y
-      ];
-      slot.moveTo(param$3);
-      var param_000$2 = s_x + s_width;
-      var param_001 = s_y + s_height;
-      var param$4 = /* tuple */[
-        param_000$2,
-        param_001
-      ];
-      slot.lineTo(param$4);
-      var param_001$1 = s_y + s_height;
-      var param$5 = /* tuple */[
-        s_x,
-        param_001$1
-      ];
-      slot.lineTo(param$5);
-      if (j === 0) {
-        var param$6 = /* tuple */[
-          s_x,
-          s_y
-        ];
-        slot.lineTo(param$6);
-      }
-      var param_000$3 = j * s_width;
-      var param_001$2 = i * s_height;
-      var param$7 = /* tuple */[
-        param_000$3,
-        param_001$2,
-        s_width,
-        s_height
-      ];
-      slot.fillRect(param$7);
-      slot.strokePath();
-      hit_zone.setInteractive();
-      board_container.add(slot);
-      board_container.add(hit_zone);
-    }
-  }
-  board_container.setPosition(/* tuple */[
-        x_offset,
-        y_offset
-      ]);
-  return /* () */0;
-}
-
-var sys = scene.sys;
-
-var board_width = sys[/* canvas */0][/* width */0] * 0.8;
-
-var board_height = sys[/* canvas */0][/* width */0] * 0.8;
-
-var create = draw_board(undefined, undefined, board_width, board_height);
-
-var Board = /* module */[
-  /* grid_w */6.0,
-  /* grid_h */6.0,
-  /* has_match */has_match,
-  /* matches_any_rot */matches_any_rot,
-  /* matches_any_pattern */matches_any_pattern,
-  /* modify_slot */modify_slot,
-  /* scene */scene,
-  /* gameObjectFactory */gameObjectFactory,
-  /* draw_board */draw_board,
-  /* create */create
-];
-
 function initMap(param) {
   return Belt_MapString.empty;
 }
@@ -612,7 +443,6 @@ var State = /* module */[
 export {
   Generator ,
   Utils ,
-  Board ,
   State ,
   
 }

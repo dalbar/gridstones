@@ -1,53 +1,72 @@
-type position = float * float
-
-type style_config = int * float
-
-type pos_config = float * float * float * float
-
 module GameObject = struct
   module Zone = struct
     type zone
-    external zone: unit -> zone = "Zone" [@@bs.new] [@@bs.module]
+
+    external zone : unit -> zone = "Zone" [@@bs.new] [@@bs.module]
+
+    external on : zone -> string -> (unit -> unit) -> unit = "on" [@@bs.send]
   end
 
   type gameObjectFactory = {setInteractive: unit -> unit}
 
+  module Sprite = struct
+    type sprite = {displayWidth: float; displayHeight: float}
+
+    external create : unit -> sprite = "Sprite" [@@bs.new] [@@bs.module]
+
+    external destroy : sprite -> unit = "destroy" [@@bs.send]
+  end
+
   module Graphics = struct
     type graphics
+
     external graphics : unit -> graphics = "Graphics" [@@bs.new] [@@bs.module]
 
-
-    external lineStyle : graphics -> style_config -> unit = "lineStyle"
+    external lineStyle :
+      graphics -> float -> int -> float -> unit
+      = "lineStyle"
       [@@bs.send]
 
-    external fillStyle : graphics -> style_config -> unit = "fillStyllE"
+    external fillStyle : graphics -> int -> float -> unit = "fillStyle"
       [@@bs.send]
 
-    external moveTo : graphics -> position -> unit = "moveTo" [@@bs.send]
+    external moveTo : graphics -> float -> float -> unit = "moveTo" [@@bs.send]
 
-    external lineTo : graphics -> position -> unit = "lineTo" [@@bs.send]
+    external lineTo : graphics -> float -> float -> unit = "lineTo" [@@bs.send]
 
     external strokePath : graphics -> unit = "strokePath" [@@bs.send]
 
     external beginPath : graphics -> unit = "beginPath" [@@bs.send]
 
-    external fillRect : graphics -> pos_config -> unit = "fillRect" [@@bs.send]
+    external fillRect :
+      graphics -> float -> float -> float -> float -> unit
+      = "fillRect"
+      [@@bs.send]
   end
 
   module Container = struct
     type container
-    external container : unit -> container = "Container" [@@bs.new] [@@bs.module]
-    external set_position: container -> position -> unit = "setPosition" [@@bs.send]
+
+    external container : unit -> container = "Container"
+      [@@bs.new] [@@bs.module]
+
+    external set_position : container -> float -> float -> unit = "setPosition"
+      [@@bs.send]
   end
 
   open Graphics
   open Container
   open Zone
 
+  external add_container :
+    container -> ([`Zone of zone | `Graphics of graphics][@bs.unwrap]) -> unit
+    = "add"
+    [@@bs.send]
 
-  external add_container : container -> ([`Zone of zone | `Graphics of graphics] [@bs.unwrap]) -> unit = "add" [@@bs.send]
-
-  external zone : gameObjectFactory -> pos_config -> zone = "zone" [@@bs.send]
+  external zone :
+    gameObjectFactory -> float -> float -> float -> float -> zone
+    = "zone"
+    [@@bs.send]
 
   external graphics : gameObjectFactory -> graphics = "graphics" [@@bs.send]
 
@@ -56,12 +75,22 @@ module GameObject = struct
   external set_interactive_zone : zone -> unit = "setInteractive" [@@bs.send]
 end
 
+module LoaderPlugin = struct
+  type loader_plugin
+
+  external create_loader_plugin : unit -> loader_plugin = "Loader.LoaderPlugin"
+    [@@bs.module] [@@bs.new]
+
+  external image : loader_plugin -> string -> string -> unit = "image"
+    [@@bs.send]
+end
+
 module Scene = struct
   open GameObject
 
-  type canvas = {width: float; height: float}
+  type canvas = {width: float; height: float} [@@bs.deriving abstract]
 
-  type sys = {canvas: canvas}
+  type sys = {canvas: canvas} [@@bs.deriving abstract]
 
   type container =
     {setInteractive: unit -> unit; setPosition: float -> float -> unit}
@@ -73,7 +102,8 @@ module Scene = struct
     ; mutable create: unit -> unit
     ; mutable init: unit -> unit
     ; sys: sys
-    ; add: gameObjectFactory }
+    ; add: gameObjectFactory
+    ; load: LoaderPlugin.loader_plugin }
   [@@bs.deriving abstract]
 
   type config = {key: string} [@@bs.deriving abstract]

@@ -1,7 +1,7 @@
 import Phaser from "phaser";
-import Board from "./scenes/board_scene";
 import Menu from "./scenes/menu"
 import End from "./scenes/end_screen";
+import Board from "./ml/board.bs";
 
 class MyGame extends Phaser.Game {
   constructor() {
@@ -10,13 +10,17 @@ class MyGame extends Phaser.Game {
       height: 800,
       type: Phaser.AUTO,
       backgroundColor: '#f3cca3',
-      scene: [Menu, Board, End]
+      scene: [Board]
     });
   }
 }
 const game = new MyGame();
 
+
+console.log(Board);
+
 export default game;
+
 
 
 //      backgroundColor: '#f3cca3',

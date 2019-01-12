@@ -1,5 +1,6 @@
 open Belt
 open Node.Fs
+open Utils
 
 exception DIM of string
 
@@ -75,12 +76,6 @@ let generate_pattern ?(min_stones = 0) size max_stones =
   |. List.map (fun matrix -> shape_quad size matrix)
 
 let write_deck deck dest = writeFileSync dest deck `ascii
-
-let get_unsafe matrix x_ind y_ind =
-  Array.getExn matrix y_ind |. Array.getExn x_ind
-
-let set_unsafe matrix x_ind y_ind value =
-  Array.getExn matrix y_ind |. Array.setExn x_ind value
 
 let rot90_square matrix =
   let dim = Array.length matrix in
