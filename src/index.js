@@ -9,7 +9,7 @@ let listeners = initMap();
 socket.addEventListener('open',  () => {
   Object.keys(game.scene.keys).forEach(key => console.log(key))
   //game.scene.start("test1");
-  //game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
+  game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
 });
 
 socket.addEventListener('message', event => {

@@ -3,6 +3,8 @@
 
 var Zone = /* module */[];
 
+var Text = /* module */[];
+
 var Sprite = /* module */[];
 
 var Graphics = /* module */[];
@@ -11,6 +13,7 @@ var Container = /* module */[];
 
 var GameObject = /* module */[
   /* Zone */Zone,
+  /* Text */Text,
   /* Sprite */Sprite,
   /* Graphics */Graphics,
   /* Container */Container

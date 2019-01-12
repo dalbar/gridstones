@@ -1,28 +1,60 @@
 open Belt
 
-let moveAction = "MOVE"
+type move = {x: int; y: int; next_player: string}
 
-let idAction = "ID"
+type pattern = int array array
 
-let playersAction = "PLAYERS"
+type state =
+  { last_move: move
+  ; players: string list
+  ; id: string
+  ; phase: string
+  ; hand: pattern list
+  ; winner: string }
 
-let turnAction = "TURN"
+let init () =
+  { last_move= {x= -1; y= -1; next_player= ""}
+  ; players= []
+  ; id= ""
+  ; phase= ""
+  ; hand= []
+  ; winner= "" }
 
-let gamePhaseAction = "PHASE"
+let move_event = "move"
 
-let handAction = "HAND"
+let players_event = "move"
 
-let winnerAction = "WINNER"
+let id_event = "id"
+
+let hand_event = "hand"
+
+let winner_event = "winner"
+
+type action =
+  | MOVE of move
+  | Players of string list
+  | ID of string
+  | HAND of pattern list
+  | WINNER of string
+[@@bs.deriving accessors]
 
 let initMap () = Belt_MapString.empty
 
-let update_state state key data = Belt_MapString.set state key data
-
-let dispatch state listeners key data =
-  let new_state = update_state state key data in
+let notify listeners key state =
   if Belt_MapString.has listeners key then
-    Belt_MapString.getExn listeners key
-    |. Array.forEach (fun fn -> fn new_state) ;
+    Belt_MapString.getExn listeners key |. Array.forEach (fun fn -> fn state)
+
+let update_state state action =
+  match action with
+  | MOVE last_move -> {state with last_move}
+  | Players players -> {state with players}
+  | ID id -> {state with id}
+  | HAND hand -> {state with hand}
+  | WINNER winner -> {state with winner}
+
+let dispatch state listeners key action =
+  let new_state = update_state state action in
+  notify listeners key new_state ;
   new_state
 
 let subscribe listeners event fn =
@@ -41,5 +73,3 @@ let unsubscribe listeners event idx =
     |. Array.keepWithIndex (fun _ i -> i = idx)
     |> Belt_MapString.set listeners event
   with _ -> listeners
-
-let get_value state key = Belt_MapString.getExn state key

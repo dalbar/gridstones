@@ -9,6 +9,14 @@ module GameObject = struct
 
   type gameObjectFactory = {setInteractive: unit -> unit}
 
+  module Text = struct
+    type text = {mutable fontSize: string; mutable fill: string}
+
+    type style = {fill: string; fontSize: string} [@@bs.deriving abstract]
+
+    external create : unit -> text = "Text" [@@bs.new] [@@bs.module]
+  end
+
   module Sprite = struct
     type sprite = {displayWidth: float; displayHeight: float}
 
@@ -57,6 +65,7 @@ module GameObject = struct
   open Graphics
   open Container
   open Zone
+  open Text
 
   external add_container :
     container -> ([`Zone of zone | `Graphics of graphics][@bs.unwrap]) -> unit
@@ -71,6 +80,11 @@ module GameObject = struct
   external graphics : gameObjectFactory -> graphics = "graphics" [@@bs.send]
 
   external container : gameObjectFactory -> container = "container" [@@bs.send]
+
+  external text_with_style :
+    gameObjectFactory -> int -> int -> string -> Text.style -> text
+    = "text"
+    [@@bs.send]
 
   external set_interactive_zone : zone -> unit = "setInteractive" [@@bs.send]
 end

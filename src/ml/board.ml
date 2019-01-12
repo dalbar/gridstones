@@ -16,11 +16,28 @@ type board_entry =
 
 type player = {score: int; id: string}
 
+type scene_config =
+  { players: player list
+  ; id: string
+  ; subscribe: string -> (State.state -> unit) -> int
+  ; sendMove: int -> int -> unit
+  ; sendWinner: string -> unit
+  ; hand: int }
+
 let grid_w = 6
 
 let grid_h = 6
 
 let players = List.make 0 {score= 0; id= ""}
+
+let config : scene_config ref =
+  ref
+    { players
+    ; id= ""
+    ; subscribe= (fun _ _ -> -1)
+    ; sendMove= (fun _ _ -> ())
+    ; sendWinner= (fun _ -> ())
+    ; hand= 0 }
 
 let init_marble () = {sprite= None; state= EMPTY}
 
@@ -61,8 +78,6 @@ let modify_slot board_state position state =
   | LOCKED -> LOCKED
 
 let scene = Scene.config ~key:"board" |. Scene.create
-
-let gameObjectFactory = Scene.addGet scene
 
 let board =
   Utils.get_n_m_board grid_h grid_w 0
@@ -155,6 +170,13 @@ let restrict_board () =
     grid_w - 1 |. lock_col ) ;
   if List.length players < 3 then ( lock_row 0 ; lock_col 0 )
 
+let create_scores () =
+  let object_factory = Scene.addGet scene in
+  let style = Text.style ~fill:"#000" ~fontSize:"16px" in
+  Array.make 5 0
+  |. Array.mapWithIndex (fun idx _ ->
+         text_with_style object_factory 16 (16 + (16 * idx)) "todo" style )
+
 let create () =
   let w, h =
     Scene.sysGet scene |. Scene.canvasGet
@@ -162,8 +184,21 @@ let create () =
   in
   let board_width = w *. 0.8 in
   draw_board ~x_offset:(0.1 *. w) ~y_offset:(0.15 *. h) board_width ;
+  let scores = create_scores () in
   restrict_board ()
+
+let handle_move {State.last_move; _} = Js.log2 "working" last_move
+
+let init _config =
+  config := _config ;
+  !config.subscribe State.move_event handle_move
 
 let default = scene
 
-let () = Scene.createSet scene create
+let state = State.init ()
+
+let listeners = Map.String.empty
+
+let () = 
+  let listeners, _ = State.subscribe listeners State.move_event handle_move in 
+   State.dispatch state listeners State.move_event (State.MOVE {x = 2; y = 2; next_player = "2"}) |. Js.log; Js.log listeners; Scene.createSet scene create

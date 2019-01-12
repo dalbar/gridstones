@@ -16,9 +16,6 @@ class MyGame extends Phaser.Game {
 }
 const game = new MyGame();
 
-
-console.log(Board);
-
 export default game;
 
 
