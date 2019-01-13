@@ -2,8 +2,38 @@
 
 import * as Block from "../../node_modules/bs-platform/lib/es6/block.js";
 import * as Curry from "../../node_modules/bs-platform/lib/es6/curry.js";
+import * as Js_json from "../../node_modules/bs-platform/lib/es6/js_json.js";
 import * as Belt_Array from "../../node_modules/bs-platform/lib/es6/belt_Array.js";
+import * as Belt_Option from "../../node_modules/bs-platform/lib/es6/belt_Option.js";
 import * as Belt_MapString from "../../node_modules/bs-platform/lib/es6/belt_MapString.js";
+
+function parse_int_from_dict(dict, key) {
+  return Belt_Option.getExn(Js_json.decodeNumber(dict[key])) | 0;
+}
+
+function parse_string_from_dict(dict, key) {
+  return Belt_Option.getExn(Js_json.decodeString(dict[key]));
+}
+
+function parse_move_object(dict) {
+  var x = parse_int_from_dict(dict, "x");
+  var y = parse_int_from_dict(dict, "y");
+  var next_player = parse_string_from_dict(dict, "nextPlayer");
+  return /* record */[
+          /* x */x,
+          /* y */y,
+          /* next_player */next_player
+        ];
+}
+
+function parse_player_object(dict) {
+  var score = parse_int_from_dict(dict, "score");
+  var id = parse_string_from_dict(dict, "id");
+  return /* record */[
+          /* id */id,
+          /* score */score
+        ];
+}
 
 function init(param) {
   return /* record */[
@@ -12,10 +42,10 @@ function init(param) {
             /* y */-1,
             /* next_player */""
           ],
-          /* players : [] */0,
+          /* players : array */[],
           /* id */"",
           /* phase */"",
-          /* hand : [] */0,
+          /* hand : array */[],
           /* winner */""
         ];
 }
@@ -24,8 +54,8 @@ function mOVE(param_0) {
   return /* MOVE */Block.__(0, [param_0]);
 }
 
-function players(param_0) {
-  return /* Players */Block.__(1, [param_0]);
+function pLAYERS(param_0) {
+  return /* PLAYERS */Block.__(1, [param_0]);
 }
 
 function iD(param_0) {
@@ -36,8 +66,12 @@ function hAND(param_0) {
   return /* HAND */Block.__(3, [param_0]);
 }
 
+function pHASE(param_0) {
+  return /* PHASE */Block.__(4, [param_0]);
+}
+
 function wINNER(param_0) {
-  return /* WINNER */Block.__(4, [param_0]);
+  return /* WINNER */Block.__(5, [param_0]);
 }
 
 function initMap(param) {
@@ -97,6 +131,15 @@ function update_state(state, action) {
                 /* last_move */state[/* last_move */0],
                 /* players */state[/* players */1],
                 /* id */state[/* id */2],
+                /* phase */action[0],
+                /* hand */state[/* hand */4],
+                /* winner */state[/* winner */5]
+              ];
+    case 5 : 
+        return /* record */[
+                /* last_move */state[/* last_move */0],
+                /* players */state[/* players */1],
+                /* id */state[/* id */2],
                 /* phase */state[/* phase */3],
                 /* hand */state[/* hand */4],
                 /* winner */action[0]
@@ -146,19 +189,27 @@ var id_event = "id";
 
 var hand_event = "hand";
 
+var phase_event = "phase";
+
 var winner_event = "winner";
 
 export {
+  parse_int_from_dict ,
+  parse_string_from_dict ,
+  parse_move_object ,
+  parse_player_object ,
   init ,
   move_event ,
   players_event ,
   id_event ,
   hand_event ,
+  phase_event ,
   winner_event ,
   mOVE ,
-  players ,
+  pLAYERS ,
   iD ,
   hAND ,
+  pHASE ,
   wINNER ,
   initMap ,
   notify ,

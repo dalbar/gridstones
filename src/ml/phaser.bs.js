@@ -21,12 +21,18 @@ var GameObject = /* module */[
 
 var LoaderPlugin = /* module */[];
 
+var SceneManager = /* module */[];
+
 var Scene = /* module */[];
+
+var Game = /* module */[];
 
 export {
   GameObject ,
   LoaderPlugin ,
+  SceneManager ,
   Scene ,
+  Game ,
   
 }
 /* No side effect */

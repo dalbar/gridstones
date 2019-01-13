@@ -1,0 +1,64 @@
+open Phaser
+open GameObject
+
+let scene = Scene.create "menu"
+
+let config : Utils.scene_config ref = Utils.init_config () |. ref
+
+let start_button : Text.text option ref = ref None
+
+let player_count : Text.text option ref = ref None
+
+let start_game {State.phase; State.id; _} =
+  if phase = "start" then
+    if id <> "" then (
+      Scene.gameGet scene |. sceneGet
+      |. fun m ->
+      SceneManager.stop m "menu" ;
+      SceneManager.start m "board" !config )
+
+let create () =
+  let object_factory = Scene.addGet scene in
+  let canvas = Scene.sysGet scene |. Scene.canvasGet in
+  let width = Scene.widthGet canvas in
+  let height = Scene.heightGet canvas in
+  let style_start = Text.style ~fill:"0" ~fontSize:"32px" in
+  let new_button =
+    text_with_style object_factory
+      (int_of_float (width *. 0.5))
+      (int_of_float (height *. 0.5))
+      "Start" style_start
+  in
+  set_interactive_text new_button ;
+  on_text new_button "pointerdown" !config.send_start ;
+  Text.set_origin new_button 0.5 0.5 ;
+  start_button := Some new_button;
+  
+  let style_count = Text.style ~fill:"0" ~fontSize:"16px" in
+  let new_player_count = text_with_style object_factory
+    (int_of_float (width *. 0.5))
+    (int_of_float ( height *. 0.5 -. 32. -. 10.))
+    "" style_count in
+  Text.set_origin new_player_count 0.5 0.5;
+  player_count := Some new_player_count
+
+let init _config =
+  let update_state state = config := {!config with state} in
+  config := _config ;
+  if !config.state.id = "" then !config.handle_register () ;
+  let _ = !config.subscribe State.players_event update_state in
+  let _ = !config.subscribe State.id_event update_state in
+  let _ = !config.subscribe State.hand_event update_state in
+  let _ = !config.subscribe State.phase_event start_game in
+  ()
+
+let update () = 
+  match !player_count with 
+  | Some player_count -> Text.textSet player_count ("Number of players:" ^ " " ^ 
+  string_of_int (Array.length !config.state.players ))
+  | None -> ()
+
+let () =
+  Scene.createSet scene create ;
+  Scene.initSet scene init;
+  Scene.updateSet scene update

@@ -10,11 +10,15 @@ module GameObject = struct
   type gameObjectFactory = {setInteractive: unit -> unit}
 
   module Text = struct
-    type text = {mutable fontSize: string; mutable fill: string}
+    type text = {mutable text: string} [@@bs.deriving abstract]
 
     type style = {fill: string; fontSize: string} [@@bs.deriving abstract]
 
-    external create : unit -> text = "Text" [@@bs.new] [@@bs.module]
+    external create : unit -> text = "Phaser.GameObjects.Text" [@@bs.new]
+
+    external set_origin : text -> float -> float -> unit = "setOrigin"
+      [@@bs.send]
+
   end
 
   module Sprite = struct
@@ -72,6 +76,11 @@ module GameObject = struct
     = "add"
     [@@bs.send]
 
+  external set_interactive_text : text -> unit = "setInteractive" [@@bs.send]
+
+  external on_text : text -> string -> (unit -> unit) -> unit = "on"
+    [@@bs.send]
+
   external zone :
     gameObjectFactory -> float -> float -> float -> float -> zone
     = "zone"
@@ -99,6 +108,20 @@ module LoaderPlugin = struct
     [@@bs.send]
 end
 
+module SceneManager = struct
+  type t
+
+  external create : unit -> t = "Scenes.SceneManager" [@@bs.module] [@@bs.new]
+
+  external start : t -> string -> 'a -> unit = "start" [@@bs.send]
+
+  external stop : t -> string -> unit = "stop" [@@bs.send]
+
+  external add : t -> string -> 'a -> unit = "add" [@@bs.send]
+end
+
+type game = {scene: SceneManager.t} [@@bs.deriving abstract]
+
 module Scene = struct
   open GameObject
 
@@ -114,13 +137,24 @@ module Scene = struct
     { mutable update: unit -> unit
     ; mutable preload: unit -> unit
     ; mutable create: unit -> unit
-    ; mutable init: unit -> unit
+    ; mutable init: Utils.scene_config -> unit
     ; sys: sys
+    ; game: game
     ; add: gameObjectFactory
     ; load: LoaderPlugin.loader_plugin }
   [@@bs.deriving abstract]
 
-  type config = {key: string} [@@bs.deriving abstract]
+  external create : string -> scene = "Scene" [@@bs.new] [@@bs.module "phaser"]
+end
 
-  external create : config -> scene = "Scene" [@@bs.new] [@@bs.module "phaser"]
+module Game = struct
+  type config =
+    { width: int
+    ; height: int
+    ; type_: string [@bs.as "type"]
+    ; backgroundColor: string
+    ; scene: Scene.scene list }
+  [@@bs.deriving abstract]
+
+  external create : config -> game = "Game" [@@bs.new] [@@bs.module "phaser"]
 end

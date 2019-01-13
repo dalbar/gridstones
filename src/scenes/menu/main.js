@@ -1,6 +1,10 @@
 import Phaser from "phaser";
 import {
-  playersAction, idAction, get_value, gamePhaseAction, handAction
+  playersAction,
+  idAction,
+  get_value,
+  gamePhaseAction,
+  handAction
 } from "../../ml/state.bs";
 
 export default class MenuScene extends Phaser.Scene {
@@ -13,38 +17,58 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   init(config) {
-    if(config.id){
+    if (config.id) {
       this.id = config.id;
-    }
-    else{
+    } else {
       config.handleRegister();
     }
     this.config = config;
     this.playerSubscriptionIdx = config.subscribe(playersAction, state => {
-      this.players = get_value(state, playersAction)
+      this.players = get_value(state, playersAction);
     });
-    this.idSubscriptionIdx = config.subscribe(idAction, state => this.id = get_value(state, idAction))
-    this.handSubscriptionIdx = config.subscribe(handAction, state => this.hand = get_value(state, handAction));
-    this.phaseSunscriptionIdx = config.subscribe(gamePhaseAction, state => this.handleGameStart(get_value(state, gamePhaseAction)))
+    this.idSubscriptionIdx = config.subscribe(
+      idAction,
+      state => (this.id = get_value(state, idAction))
+    );
+    this.handSubscriptionIdx = config.subscribe(
+      handAction,
+      state => (this.hand = get_value(state, handAction))
+    );
+    this.phaseSunscriptionIdx = config.subscribe(gamePhaseAction, state =>
+      this.handleGameStart(get_value(state, gamePhaseAction))
+    );
   }
 
   handleGameStart(phase) {
     if (phase === "start") {
       if (this.id !== "") {
-        this.game.scene.stop('menu');
-        this.game.scene.start('board', { ...this.config, players: this.players, id: this.id, hand: this.hand });
-      }
-      else this.startButton.text = "Waiting"
+        this.game.scene.stop("menu");
+        this.game.scene.start("board", {
+          ...this.config,
+          players: this.players,
+          id: this.id,
+          hand: this.hand
+        });
+      } else this.startButton.text = "Waiting";
     }
-
   }
 
   create() {
-    this.startButton = this.add.text(this.sys.canvas.width * 0.5, this.sys.canvas.height * 0.5, 'Start', { fontSize: '32px', fill: '0' });
+    this.startButton = this.add.text(
+      this.sys.canvas.width * 0.5,
+      this.sys.canvas.height * 0.5,
+      "Start",
+      { fontSize: "32px", fill: "0" }
+    );
     this.startButton.setOrigin(0.5, 0.5);
     this.startButton.setInteractive();
-    this.startButton.on('pointerdown', () => this.config.sendStartMessage());
-    this.playerCountText = this.add.text(this.sys.canvas.width * 0.5, this.sys.canvas.height * 0.5 - 32 - 10, '', { fontSize: '16px', fill: '0' });
+    this.startButton.on("pointerdown", () => this.config.sendStartMessage());
+    this.playerCountText = this.add.text(
+      this.sys.canvas.width * 0.5,
+      this.sys.canvas.height * 0.5 - 32 - 10,
+      "",
+      { fontSize: "16px", fill: "0" }
+    );
     this.playerCountText.setOrigin(0.5, 0.5);
   }
 
@@ -52,3 +76,4 @@ export default class MenuScene extends Phaser.Scene {
     this.playerCountText.text = `Number of players: ${this.players.length}`;
   }
 }
+playerCountText;

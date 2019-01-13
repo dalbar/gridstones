@@ -1,38 +1,38 @@
 import game from "./game";
 import _Phaser from "./ml/phaser.bs";
-import { initMap, subscribe, dispatch, idAction, playersAction, moveAction, gamePhaseAction, handAction, winnerAction } from "./ml/state.bs";
-
+import { initMap, dispatch , game_state, id_event, iD, players_event, pLAYERS, phase_event, move_event, mOVE, hand_event, pHASE, hAND, wINNER} from "./ml/state.bs";
+import { init_config } from "./ml/utils.bs";
 const socket = new WebSocket('ws://127.0.0.1:8081');
-let gameState = initMap();
+
 let listeners = initMap();
 
+const config = init_config(game_state, subscribeGameState, sendMove, sendWinner, handleRegister, sendStartMessage);
+console.log(config)
 socket.addEventListener('open',  () => {
   Object.keys(game.scene.keys).forEach(key => console.log(key))
   //game.scene.start("test1");
-  game.scene.start("menu", {subscribe: subscribeGameState , sendStartMessage, sendMove, sendWinner, handleRegister});
+  game.scene.start("menu", init_config(game_state, subscribeGameState, sendMove, sendWinner, handleRegister, sendStartMessage));
 });
 
 socket.addEventListener('message', event => {
   const parsed = JSON.parse(event.data);
   handleEvent(parsed);
 });
-
+menu
 const handleRegister = () => {
   const message = { type: "REGISTER" };
   socket.send(JSON.stringify(message));
 }
 const handleEvent = data => {
   switch(data.type){
-    case "ID": gameState = dispatchGameState(idAction, data.id); break;
-    case "PLAYERS": gameState = dispatchGameState(playersAction, data.players);  break;
-    case "PHASE": gameState = dispatchGameState(gamePhaseAction, data.phase); break;
-    case "MOVE": gameState = dispatchGameState(moveAction, JSON.parse(data.move)); break;
-    case "HAND": gameState = dispatchGameState(handAction, JSON.parse(data.hand)); break;
-    case "WINNER": gameState = dispatchGameState(winnerAction, data.id); break;
+    case "ID": gameState = dispatch_game_state(id_event, iD(data.id)); break;
+    case "PLAYERS": gameState = dispatch_game_state(players_event, pLAYERS(data.players));  break;
+    case "PHASE": gameState = dispatch_game_state(phase_event, pHASE(data.phase)); break;
+    case "MOVE": gameState = dispatch_game_state(move_event, mOVE(data.move)); break;
+    case "HAND": gameState = dispatch_game_state(hand_event, hAND(JSON.parse(data.hand))); break;
+    case "WINNER": gameState = dispatch_game_state(winnerAction, wINNER(data.id)); break;
   }
 }
-
-const dispatchGameState = (msg, data) => dispatch(gameState, listeners, msg, data);
 
 const subscribeGameState = (_event, fn) => {
   const [ newListeners, idx] = subscribe(listeners, _event, state => fn(state));

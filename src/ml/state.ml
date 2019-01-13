@@ -2,22 +2,40 @@ open Belt
 
 type move = {x: int; y: int; next_player: string}
 
-type pattern = int array array
+let parse_int_from_dict dict key = 
+  Js.Dict.unsafeGet dict key |. Js.Json.decodeNumber |. Belt.Option.getExn |. int_of_float
+
+let parse_string_from_dict dict key = 
+  Js.Dict.unsafeGet dict key |. Js.Json.decodeString |. Belt.Option.getExn
+
+let parse_move_object dict = 
+  let x = parse_int_from_dict dict "x"  in
+  let y = parse_int_from_dict dict "y"  in
+  let next_player = parse_string_from_dict dict "nextPlayer" in 
+  { x; y; next_player }
+
+type player = { id: string; score: int }
+
+let parse_player_object dict = 
+  let score = parse_int_from_dict dict "score" in
+  let id = parse_string_from_dict dict "id" in 
+  { id; score }
+type pattern = float array array
 
 type state =
   { last_move: move
-  ; players: string list
+  ; players: player array
   ; id: string
   ; phase: string
-  ; hand: pattern list
+  ; hand: pattern array
   ; winner: string }
 
 let init () =
-  { last_move= {x= -1; y= -1; next_player= ""}
-  ; players= []
+  { last_move= {x= (-1); y= (-1); next_player= ""}
+  ; players= [||]
   ; id= ""
   ; phase= ""
-  ; hand= []
+  ; hand= [||]
   ; winner= "" }
 
 let move_event = "move"
@@ -28,13 +46,16 @@ let id_event = "id"
 
 let hand_event = "hand"
 
+let phase_event = "phase"
+
 let winner_event = "winner"
 
 type action =
   | MOVE of move
-  | Players of string list
+  | PLAYERS of player array
   | ID of string
-  | HAND of pattern list
+  | HAND of pattern array
+  | PHASE of string
   | WINNER of string
 [@@bs.deriving accessors]
 
@@ -47,10 +68,11 @@ let notify listeners key state =
 let update_state state action =
   match action with
   | MOVE last_move -> {state with last_move}
-  | Players players -> {state with players}
+  | PLAYERS players -> {state with players}
   | ID id -> {state with id}
   | HAND hand -> {state with hand}
   | WINNER winner -> {state with winner}
+  | PHASE phase -> {state with phase}
 
 let dispatch state listeners key action =
   let new_state = update_state state action in
@@ -73,3 +95,4 @@ let unsubscribe listeners event idx =
     |. Array.keepWithIndex (fun _ i -> i = idx)
     |> Belt_MapString.set listeners event
   with _ -> listeners
+

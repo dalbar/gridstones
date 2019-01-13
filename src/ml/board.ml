@@ -3,6 +3,8 @@ open Phaser
 open Utils
 open GameObject
 
+let scene = Scene.create "board"
+
 type states = EMPTY | PLACED | NEW | LOCKED
 
 type marble = {sprite: Sprite.sprite option; state: states}
@@ -16,28 +18,11 @@ type board_entry =
 
 type player = {score: int; id: string}
 
-type scene_config =
-  { players: player list
-  ; id: string
-  ; subscribe: string -> (State.state -> unit) -> int
-  ; sendMove: int -> int -> unit
-  ; sendWinner: string -> unit
-  ; hand: int }
-
 let grid_w = 6
 
 let grid_h = 6
 
-let players = List.make 0 {score= 0; id= ""}
-
-let config : scene_config ref =
-  ref
-    { players
-    ; id= ""
-    ; subscribe= (fun _ _ -> -1)
-    ; sendMove= (fun _ _ -> ())
-    ; sendWinner= (fun _ -> ())
-    ; hand= 0 }
+let config : scene_config ref = init_config () |. ref
 
 let init_marble () = {sprite= None; state= EMPTY}
 
@@ -76,8 +61,6 @@ let modify_slot board_state position state =
       EMPTY
   | NEW -> NEW
   | LOCKED -> LOCKED
-
-let scene = Scene.config ~key:"board" |. Scene.create
 
 let board =
   Utils.get_n_m_board grid_h grid_w 0
@@ -165,10 +148,10 @@ let add_board_events () =
   for_each_matrix board add_click_callback
 
 let restrict_board () =
-  if List.length players < 4 then (
+  if Array.length !config.state.players < 4 then (
     grid_h - 1 |. lock_row ;
     grid_w - 1 |. lock_col ) ;
-  if List.length players < 3 then ( lock_row 0 ; lock_col 0 )
+  if Array.length !config.state.players < 3 then ( lock_row 0 ; lock_col 0 )
 
 let create_scores () =
   let object_factory = Scene.addGet scene in
@@ -193,12 +176,16 @@ let init _config =
   config := _config ;
   !config.subscribe State.move_event handle_move
 
-let default = scene
-
 let state = State.init ()
 
 let listeners = Map.String.empty
 
-let () = 
-  let listeners, _ = State.subscribe listeners State.move_event handle_move in 
-   State.dispatch state listeners State.move_event (State.MOVE {x = 2; y = 2; next_player = "2"}) |. Js.log; Js.log listeners; Scene.createSet scene create
+(*
+let () =
+  let listeners, _ = State.subscribe listeners State.move_event handle_move in
+  State.dispatch state listeners State.move_event
+    (State.MOVE {x= 2; y= 2; next_player= "2"})
+  |. Js.log ;
+  Js.log listeners ;
+  Scene.createSet scene create
+*)

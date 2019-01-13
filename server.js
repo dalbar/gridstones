@@ -24,6 +24,7 @@ const hanldeMessage = (message, ws) => {
       ws.send(JSON.stringify({ type: "PHASE", phase: gameState }));
       break;
     case "PHASE":
+      console.log(message)
       if (message.phase === "start") handleStart();
       break;
     case "MOVE":

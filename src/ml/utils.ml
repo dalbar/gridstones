@@ -5,6 +5,16 @@ type coordinates = {x: int; y: int}
 
 type size = {width: float; height: float}
 
+type player = {score: int; id: string}
+
+type scene_config =
+  { state: State.state
+  ; subscribe: string -> (State.state -> unit) -> int
+  ; send_move: float -> float -> unit
+  ; send_winner: string -> unit
+  ; handle_register: unit -> unit
+  ; send_start: unit -> unit }
+
 external parse_int : string -> int -> int = "parseInt" [@@bs.val]
 
 (** Transform between world coordinates (origin at top left corner) and image coordinates (origin at center) *)
@@ -72,3 +82,8 @@ let get_unsafe matrix x_ind y_ind = getExn matrix y_ind |. getExn x_ind
 
 let set_unsafe matrix x_ind y_ind value =
   getExn matrix y_ind |. setExn x_ind value
+
+let init_config ?(state = State.init ()) ?(subscribe = fun _ _ -> -1)
+    ?(send_move = fun _ _ -> ()) ?(send_winner = fun _ -> ())
+    ?(handle_register = fun () -> ()) ?(send_start = fun () -> ()) () =
+  {state; subscribe; send_move; send_winner; handle_register; send_start}
