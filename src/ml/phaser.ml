@@ -1,6 +1,6 @@
 module GameObject = struct
   module Zone = struct
-    type zone
+    type zone = { x: float; y: float } [@@bs.deriving abstract]
 
     external zone : unit -> zone = "Zone" [@@bs.new] [@@bs.module]
 
@@ -18,6 +18,8 @@ module GameObject = struct
 
     external set_origin : text -> float -> float -> unit = "setOrigin"
       [@@bs.send]
+    
+    external set_font_style: text -> string -> unit = "setFontStyle" [@@bs.send]
   end
 
   module Sprite = struct
@@ -26,6 +28,9 @@ module GameObject = struct
     external create : unit -> sprite = "Sprite" [@@bs.new] [@@bs.module]
 
     external destroy : sprite -> unit = "destroy" [@@bs.send]
+
+    external set_origin : sprite -> float -> float -> unit = "setOrigin"
+      [@@bs.send]
   end
 
   module Graphics = struct
@@ -56,7 +61,7 @@ module GameObject = struct
   end
 
   module Container = struct
-    type container
+    type container = { displayWidth: float; displayHeight: float } [@@bs.deriving abstract]
 
     external container : unit -> container = "Container"
       [@@bs.new] [@@bs.module]
