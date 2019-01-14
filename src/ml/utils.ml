@@ -24,7 +24,7 @@ let transform_world_to_image_coords x y canvas_width canvas_height =
 let get_n_m_board n m v = make m v |. map (make n)
 
 let scale_marble_size board_width board_height p =
-  {width= (board_width /. 6.0) -. p; height= (board_height /. 6.0) -. p}
+ (board_width /. 6.0) -. p, (board_height /. 6.0) -. p
 
 let map_matrix_with_index matrix f =
   mapWithIndex matrix (fun j row ->

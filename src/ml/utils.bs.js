@@ -19,9 +19,9 @@ function get_n_m_board(n, m, v) {
 }
 
 function scale_marble_size(board_width, board_height, p) {
-  return /* record */[
-          /* width */board_width / 6.0 - p,
-          /* height */board_height / 6.0 - p
+  return /* tuple */[
+          board_width / 6.0 - p,
+          board_height / 6.0 - p
         ];
 }
 

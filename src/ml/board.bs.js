@@ -38,7 +38,9 @@ var board = Utils.map_matrix(Utils.get_n_m_board(6, 6, 0), (function (param) {
 
 var cards = Belt_Array.make(5, /* record */[
       /* is_done */false,
-      /* container */undefined
+      /* container */undefined,
+      /* width */0,
+      /* height */0
     ]);
 
 function set_board(x, y, value) {
@@ -69,7 +71,6 @@ function has_match(pattern) {
 
 function matches_any_rot(pattern) {
   return Belt_List.some(Belt_List.map(Deck_generator.get_all_rots(pattern), has_match), (function (isMatch) {
-                console.log(isMatch);
                 return isMatch;
               }));
 }
@@ -78,7 +79,7 @@ function matches_any_pattern(param) {
   return Belt_Array.keep(Belt_Array.mapWithIndex(config[0][/* state */0][/* hand */4], (function (i, pattern) {
                     return /* tuple */[
                             i,
-                            has_match(pattern)
+                            matches_any_rot(pattern)
                           ];
                   })), (function (param) {
                 return param[1];
@@ -275,8 +276,8 @@ function draw_card(scene, pattern, x, y, w, h) {
   var s_width = w / 3.0;
   var s_height = h / 3.0;
   var match = Utils.scale_marble_size(s_width, s_height, 30.0);
-  var m_height = match[/* height */1];
-  var m_width = match[/* width */0];
+  var m_height = match[1];
+  var m_width = match[0];
   for(var i = 0; i <= 2; ++i){
     for(var j = 0; j <= 2; ++j){
       var slot = object_factory.graphics();
@@ -323,21 +324,21 @@ function get_card(idx) {
 }
 
 function draw_done_overlay(idx) {
-  var cur_card = Belt_Array.getExn(cards, idx);
-  var match = cur_card[/* container */1];
-  if (match !== undefined) {
-    if (cur_card[/* is_done */0] === false) {
-      var container = Caml_option.valFromOption(match);
+  var match = Belt_Array.getExn(cards, idx);
+  var container = match[/* container */1];
+  if (container !== undefined) {
+    if (match[/* is_done */0] === false) {
+      var container$1 = Caml_option.valFromOption(container);
+      var height = match[/* height */3];
+      var width = match[/* width */2];
       var object_factory = scene.add;
       var overlay = object_factory.graphics();
-      var width = container.displayWidth;
-      var height = container.displayHeight;
       overlay.fillStyle(parseInt("757575", 16), 0.5);
       overlay.fillRect(0.0, 0.0, width, height);
       var done_sprite = create_sprite(object_factory, "check", width * 0.5, height * 0.5, width * 0.3, width * 0.3);
       done_sprite.setOrigin(0.5, 0.5);
-      container.add(overlay);
-      container.add(done_sprite);
+      container$1.add(overlay);
+      container$1.add(done_sprite);
       return /* () */0;
     } else {
       return 0;
@@ -357,7 +358,9 @@ function draw_hand(w, h) {
     var container = Caml_option.some(draw_card(scene, pattern, x, y, width, width));
     return Belt_Array.setExn(cards, idx, /* record */[
                 /* is_done */false,
-                /* container */container
+                /* container */container,
+                /* width */width,
+                /* height */width
               ]);
   };
   return Belt_Array.forEachWithIndex(config[0][/* state */0][/* hand */4], draw_card$1);
@@ -406,7 +409,7 @@ function draw_marble_in_zone(zone) {
   var marble_x = zone$1.x;
   var marble_y = zone$1.y;
   var match$1 = Utils.scale_marble_size(match[0], match[1], 30.0);
-  var sprite_object = create_sprite(object_factory, "marble", marble_x, marble_y, match$1[/* width */0], match$1[/* height */1]);
+  var sprite_object = create_sprite(object_factory, "marble", marble_x, marble_y, match$1[0], match$1[1]);
   Belt_Option.getExn(board_container[0]).add(sprite_object);
   return sprite_object;
 }

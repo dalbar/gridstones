@@ -34,10 +34,10 @@ let board  =
   get_n_m_board grid_h grid_w 0
   |. map_matrix (fun _ -> create_board_entry ())
 
-type card = { is_done: bool; container: Container.container option }
+type card = { is_done: bool; container: Container.container option; width: float; height: float }
 
 let cards = 
-  Array.make 5 {is_done = false; container = None}
+  Array.make 5 {is_done = false; container = None; width = 0. ; height = 0. }
 
 let set_board x y value = set_unsafe board x y value
 
@@ -58,12 +58,12 @@ let has_match pattern =
 let matches_any_rot pattern =
   Deck_generator.get_all_rots pattern
   |. List.map has_match
-  |. List.some (fun isMatch -> Js.log isMatch; isMatch)
+  |. List.some (fun isMatch -> isMatch)
 
 
 let matches_any_pattern () =
   Array.mapWithIndex !config.state.hand (fun i pattern ->
-      (i, has_match pattern) )
+      (i, matches_any_rot pattern) )
   |. Array.keep (fun (_, hasMatch) -> hasMatch)
 
 let get_game_dim () =
@@ -182,7 +182,7 @@ let draw_card scene pattern x y w h =
   let card_h_f = 3.0 in
   let s_width = w /. card_w_f in
   let s_height = h /. card_h_f in
-  let {width = m_width; height = m_height} = Utils.scale_marble_size s_width s_height 30.0 in
+  let m_width, m_height = Utils.scale_marble_size s_width s_height 30.0 in
   for i = 0 to int_of_float card_h_f - 1 do
     for j = 0 to int_of_float card_w_f - 1 do
       let slot = graphics object_factory in
@@ -221,15 +221,13 @@ let get_card idx =
   Array.getExn cards idx 
 
 let draw_done_overlay idx = 
-  let cur_card = get_card idx in
-  match cur_card.container with 
+  let { is_done; width; height; container } = get_card idx in
+  match container with 
   | None -> Js.log "no container"
   | Some container ->
-    if cur_card.is_done = false then (
+    if is_done = false then (
       let object_factory = Scene.addGet scene in
       let overlay = graphics object_factory in
-      let width = Container.displayWidthGet container in 
-      let height = Container.displayHeightGet container in
       (* draw overlay *)
       Graphics.fillStyle overlay (parse_int "757575" 16) 0.5;
       Graphics.fillRect overlay 0.0 0.0  width height;
@@ -248,7 +246,7 @@ let draw_hand w h =
     let idx_f = float_of_int idx in
     let x = width *. idx_f +. padding *. idx_f in
     let container = Some (draw_card scene pattern x y width width) in
-    Array.setExn cards idx {is_done = false; container} in
+    Array.setExn cards idx {is_done = false; container; width; height = width} in
   Array.forEachWithIndex !config.state.hand draw_card
 
 let isTurn ?(id = !config.state.id ) () = id = !config.state.last_move.next_player
@@ -270,7 +268,7 @@ let draw_marble_in_zone zone =
   let zone = Option.getExn zone in
   let marble_x = Zone.xGet zone in
   let marble_y = Zone.yGet zone in
-  let {width = marble_w; height = marble_h} = scale_marble_size board_w board_h 30.0 in 
+  let marble_w, marble_h = scale_marble_size board_w board_h 30.0 in 
   let sprite_object = create_sprite object_factory "marble" marble_x marble_y marble_w marble_h in
   Option.getExn !board_container |. add_container (`Sprite sprite_object);
   sprite_object
