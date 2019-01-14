@@ -44,27 +44,23 @@ let handle_event event =
       in
       dispatch_game_state State.players_event (State.PLAYERS players)
   | "PHASE" ->
-      let phase =
-        get_value "phase" |. State.decode_json_string
-      in
+      let phase = get_value "phase" |. State.decode_json_string in
       dispatch_game_state State.phase_event (State.PHASE phase)
   | "MOVE" ->
       let move =
-        get_value "move" |. State.decode_json_string
-        |. Js.Json.parseExn |. Js.Json.decodeObject |. Belt.Option.getExn
+        get_value "move" |. State.decode_json_string |. Js.Json.parseExn
+        |. Js.Json.decodeObject |. Belt.Option.getExn
         |. State.parse_move_object
       in
       dispatch_game_state State.move_event (State.MOVE move)
   | "HAND" ->
       let hand =
-        get_value "hand" |. State.decode_json_string
-        |. Js.Json.parseExn |. State.decode_json_matrix_3d
+        get_value "hand" |. State.decode_json_string |. Js.Json.parseExn
+        |. State.decode_json_matrix_3d
       in
       dispatch_game_state State.hand_event (State.HAND hand)
   | "WINNER" ->
-      let winner =
-        get_value "winner" |. State.decode_json_string
-      in
+      let winner = get_value "id" |. State.decode_json_string in
       dispatch_game_state State.winner_event (State.WINNER winner)
   | _ -> ()
 
@@ -88,7 +84,8 @@ let send_move x y =
   Js.Dict.set move_dict "x" (Js.Json.number x) ;
   Js.Dict.set move_dict "y" (Js.Json.number y) ;
   Js.Dict.set move_msg "type" (Js.Json.string "MOVE") ;
-  Js.Dict.set move_msg "move" (Js.Json.object_ move_dict) ;
+  Js.Dict.set move_msg "move"
+    (Js.Json.object_ move_dict |. Js.Json.stringify |. Js.Json.string) ;
   send_js_dict move_msg
 
 let send_winner id =
@@ -116,6 +113,7 @@ let handle_open () =
   let manager = sceneGet game in
   SceneManager.add manager "menu" Menu.scene ;
   SceneManager.add manager "board" Board.scene ;
+  SceneManager.add manager "end" End_screen.scene ;
   SceneManager.start manager "menu" scene_config
 
 let () =

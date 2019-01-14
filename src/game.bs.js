@@ -8,6 +8,7 @@ import * as State from "./ml/state.bs.js";
 import * as Phaser from "phaser";
 import * as Js_json from "../node_modules/bs-platform/lib/es6/js_json.js";
 import * as Belt_Array from "../node_modules/bs-platform/lib/es6/belt_Array.js";
+import * as End_screen from "./ml/end_screen.bs.js";
 import * as Belt_Option from "../node_modules/bs-platform/lib/es6/belt_Option.js";
 import * as Belt_MapString from "../node_modules/bs-platform/lib/es6/belt_MapString.js";
 
@@ -63,7 +64,7 @@ function handle_event($$event) {
               }));
         return dispatch_game_state(State.players_event, /* PLAYERS */Block.__(1, [players]));
     case "WINNER" : 
-        var winner = State.decode_json_string(data["winner"]);
+        var winner = State.decode_json_string(data["id"]);
         return dispatch_game_state(State.winner_event, /* WINNER */Block.__(5, [winner]));
     default:
       return /* () */0;
@@ -94,7 +95,7 @@ function send_move(x, y) {
   move_dict["x"] = x;
   move_dict["y"] = y;
   move_msg["type"] = "MOVE";
-  move_msg["move"] = move_dict;
+  move_msg["move"] = JSON.stringify(move_dict);
   return send_js_dict(move_msg);
 }
 
@@ -126,6 +127,7 @@ function handle_open(param) {
   var manager = game.scene;
   manager.add("menu", Menu.scene);
   manager.add("board", Board.scene);
+  manager.add("end", End_screen.scene);
   manager.start("menu", scene_config);
   return /* () */0;
 }
