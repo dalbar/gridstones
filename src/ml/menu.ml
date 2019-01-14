@@ -16,6 +16,11 @@ let start_game {State.phase; State.id; _} =
       |. fun m ->
       SceneManager.stop m "menu" ;
       SceneManager.start m "board" !config )
+    else
+      match !start_button with
+      | Some start_button ->
+          Text.textSet start_button "Game has started. Try later!"
+      | None -> ()
 
 let create () =
   let object_factory = Scene.addGet scene in
@@ -32,14 +37,15 @@ let create () =
   set_interactive_text new_button ;
   on_text new_button "pointerdown" !config.send_start ;
   Text.set_origin new_button 0.5 0.5 ;
-  start_button := Some new_button;
-  
+  start_button := Some new_button ;
   let style_count = Text.style ~fill:"0" ~fontSize:"16px" in
-  let new_player_count = text_with_style object_factory
-    (int_of_float (width *. 0.5))
-    (int_of_float ( height *. 0.5 -. 32. -. 10.))
-    "" style_count in
-  Text.set_origin new_player_count 0.5 0.5;
+  let new_player_count =
+    text_with_style object_factory
+      (int_of_float (width *. 0.5))
+      (int_of_float ((height *. 0.5) -. 32. -. 10.))
+      "" style_count
+  in
+  Text.set_origin new_player_count 0.5 0.5 ;
   player_count := Some new_player_count
 
 let init _config =
@@ -52,13 +58,16 @@ let init _config =
   let _ = !config.subscribe State.phase_event start_game in
   ()
 
-let update () = 
-  match !player_count with 
-  | Some player_count -> Text.textSet player_count ("Number of players:" ^ " " ^ 
-  string_of_int (Array.length !config.state.players ))
+let update () =
+  match !player_count with
+  | Some player_count ->
+      if !config.state.id <> "" then
+        Text.textSet player_count
+          ( "Number of players:" ^ " "
+          ^ string_of_int (Array.length !config.state.players) )
   | None -> ()
 
 let () =
   Scene.createSet scene create ;
-  Scene.initSet scene init;
+  Scene.initSet scene init ;
   Scene.updateSet scene update

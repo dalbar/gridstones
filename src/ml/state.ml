@@ -2,24 +2,63 @@ open Belt
 
 type move = {x: int; y: int; next_player: string}
 
-let parse_int_from_dict dict key = 
-  Js.Dict.unsafeGet dict key |. Js.Json.decodeNumber |. Belt.Option.getExn |. int_of_float
+exception JSON_EXEP of string
 
-let parse_string_from_dict dict key = 
+let decode_json json =
+  let t = Js.Json.classify json in
+  match t with
+  | JSONFalse -> `Boolean false
+  | JSONTrue -> `Boolean true
+  | JSONNull -> `Null Js.null
+  | JSONString str -> `String str
+  | JSONNumber number -> `Number number
+  | JSONObject obj -> `Object obj
+  | JSONArray arr -> `Array arr
+
+let decode_json_string json =
+  match decode_json json with
+  | `String str -> str
+  | _ -> raise (JSON_EXEP "not a string")
+
+let decode_json_number json =
+  match decode_json json with
+  | `Number number -> number
+  | _ -> raise (JSON_EXEP "not a number")
+
+let decode_json_number_array json =
+  match decode_json json with
+  | `Array arr -> arr
+  | _ -> raise (JSON_EXEP "not an array")
+
+let decode_json_matrix_2d json =
+  decode_json_number_array json
+  |. Array.map (fun row ->
+         decode_json_number_array row |. Array.map decode_json_number )
+
+let decode_json_matrix_3d json =
+  decode_json_number_array json
+  |. Array.map (fun d2 -> decode_json_matrix_2d d2)
+
+let parse_int_from_dict dict key =
+  Js.Dict.unsafeGet dict key |. Js.Json.decodeNumber |. Belt.Option.getExn
+  |. int_of_float
+
+let parse_string_from_dict dict key =
   Js.Dict.unsafeGet dict key |. Js.Json.decodeString |. Belt.Option.getExn
 
-let parse_move_object dict = 
-  let x = parse_int_from_dict dict "x"  in
-  let y = parse_int_from_dict dict "y"  in
-  let next_player = parse_string_from_dict dict "nextPlayer" in 
-  { x; y; next_player }
+let parse_move_object dict =
+  let x = parse_int_from_dict dict "x" in
+  let y = parse_int_from_dict dict "y" in
+  let next_player = parse_string_from_dict dict "nextPlayer" in
+  {x; y; next_player}
 
-type player = { id: string; score: int }
+type player = {id: string; score: int}
 
-let parse_player_object dict = 
+let parse_player_object dict =
   let score = parse_int_from_dict dict "score" in
-  let id = parse_string_from_dict dict "id" in 
-  { id; score }
+  let id = parse_string_from_dict dict "id" in
+  {id; score}
+
 type pattern = float array array
 
 type state =
@@ -31,7 +70,7 @@ type state =
   ; winner: string }
 
 let init () =
-  { last_move= {x= (-1); y= (-1); next_player= ""}
+  { last_move= {x= -1; y= -1; next_player= ""}
   ; players= [||]
   ; id= ""
   ; phase= ""
@@ -95,4 +134,3 @@ let unsubscribe listeners event idx =
     |. Array.keepWithIndex (fun _ i -> i = idx)
     |> Belt_MapString.set listeners event
   with _ -> listeners
-

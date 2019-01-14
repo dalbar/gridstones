@@ -33,7 +33,7 @@ let handle_event event =
   in
   match type_ with
   | "ID" ->
-      let id = get_value "id" |. Js.Json.decodeString |. Belt.Option.getExn in
+      let id = get_value "id" |. State.decode_json_string in
       dispatch_game_state State.id_event (State.ID id)
   | "PLAYERS" ->
       let players =
@@ -45,32 +45,25 @@ let handle_event event =
       dispatch_game_state State.players_event (State.PLAYERS players)
   | "PHASE" ->
       let phase =
-        get_value "phase" |. Js.Json.decodeString |. Belt.Option.getExn
+        get_value "phase" |. State.decode_json_string
       in
       dispatch_game_state State.phase_event (State.PHASE phase)
   | "MOVE" ->
       let move =
-        get_value "move" |. Js.Json.decodeObject |. Belt.Option.getExn
+        get_value "move" |. State.decode_json_string
+        |. Js.Json.parseExn |. Js.Json.decodeObject |. Belt.Option.getExn
         |. State.parse_move_object
       in
       dispatch_game_state State.move_event (State.MOVE move)
   | "HAND" ->
-      (* decoding in order: array of patterns, pattern, row, value *)
       let hand =
-        get_value "hand" |. Js.Json.decodeArray |. Belt.Option.getExn
-        |. Belt.Array.map (fun pattern ->
-               Js.Json.decodeArray pattern
-               |. Belt.Option.getExn
-               |. Belt.Array.map (fun row ->
-                      Js.Json.decodeArray row |. Belt.Option.getExn
-                      |. Belt.Array.map (fun entry ->
-                             Js.Json.decodeNumber entry |. Belt.Option.getExn
-                         ) ) )
+        get_value "hand" |. State.decode_json_string
+        |. Js.Json.parseExn |. State.decode_json_matrix_3d
       in
       dispatch_game_state State.hand_event (State.HAND hand)
   | "WINNER" ->
       let winner =
-        get_value "winner" |. Js.Json.decodeString |. Belt.Option.getExn
+        get_value "winner" |. State.decode_json_string
       in
       dispatch_game_state State.winner_event (State.WINNER winner)
   | _ -> ()

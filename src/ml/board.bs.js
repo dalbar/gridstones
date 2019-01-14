@@ -7,6 +7,7 @@ import * as Phaser from "phaser";
 import * as Belt_List from "../../node_modules/bs-platform/lib/es6/belt_List.js";
 import * as Belt_Array from "../../node_modules/bs-platform/lib/es6/belt_Array.js";
 import * as Caml_option from "../../node_modules/bs-platform/lib/es6/caml_option.js";
+import * as Pattern_card from "./pattern_card.bs.js";
 import * as Belt_MapString from "../../node_modules/bs-platform/lib/es6/belt_MapString.js";
 import * as Deck_generator from "./deck_generator.bs.js";
 
@@ -238,6 +239,17 @@ function create_scores(param) {
               }));
 }
 
+function draw_hand(w, h) {
+  var width = w / 5 - 20;
+  var y = 0.8 * h;
+  var draw_card = function (idx, pattern) {
+    var idx_f = idx;
+    var x = width * idx_f + 20 * idx_f;
+    return Pattern_card.draw_card(scene, pattern, x, y, width, width);
+  };
+  return Belt_Array.forEachWithIndex(config[0][/* state */0][/* hand */4], draw_card);
+}
+
 function create(param) {
   var c = scene.sys.canvas;
   var w = c.width;
@@ -245,7 +257,8 @@ function create(param) {
   var board_width = w * 0.8;
   draw_board(0.1 * w, 0.15 * h, board_width);
   create_scores(/* () */0);
-  return restrict_board(/* () */0);
+  restrict_board(/* () */0);
+  return draw_hand(w, h);
 }
 
 function handle_move(param) {
@@ -255,10 +268,17 @@ function handle_move(param) {
 
 function init(_config) {
   config[0] = _config;
-  return Curry._2(config[0][/* subscribe */1], State.move_event, handle_move);
+  Curry._2(config[0][/* subscribe */1], State.move_event, handle_move);
+  return /* () */0;
 }
 
 var state = State.init(/* () */0);
+
+scene.init = init;
+
+scene.create = create;
+
+scene.preload = preload;
 
 var grid_w = 6;
 
@@ -289,6 +309,7 @@ export {
   add_board_events ,
   restrict_board ,
   create_scores ,
+  draw_hand ,
   create ,
   handle_move ,
   init ,

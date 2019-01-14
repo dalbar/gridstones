@@ -15,11 +15,21 @@ var start_button = /* record */[/* contents */undefined];
 var player_count = /* record */[/* contents */undefined];
 
 function start_game(param) {
-  if (param[/* phase */3] === "start" && param[/* id */2] !== "") {
-    var m = scene.game.scene;
-    m.stop("menu");
-    m.start("board", config[0]);
-    return /* () */0;
+  if (param[/* phase */3] === "start") {
+    if (param[/* id */2] !== "") {
+      var m = scene.game.scene;
+      m.stop("menu");
+      m.start("board", config[0]);
+      return /* () */0;
+    } else {
+      var match = start_button[0];
+      if (match !== undefined) {
+        Caml_option.valFromOption(match).text = "Game has started. Try later!";
+        return /* () */0;
+      } else {
+        return /* () */0;
+      }
+    }
   } else {
     return 0;
   }
@@ -75,7 +85,7 @@ function init(_config) {
 
 function update(param) {
   var match = player_count[0];
-  if (match !== undefined) {
+  if (match !== undefined && config[0][/* state */0][/* id */2] !== "") {
     Caml_option.valFromOption(match).text = "Number of players: " + String(config[0][/* state */0][/* players */1].length);
     return /* () */0;
   } else {

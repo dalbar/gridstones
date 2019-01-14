@@ -46,22 +46,16 @@ function handle_event($$event) {
   var type_ = Belt_Option.getExn(Js_json.decodeString(data["type"]));
   switch (type_) {
     case "HAND" : 
-        var hand = Belt_Array.map(Belt_Option.getExn(Js_json.decodeArray(data["hand"])), (function (pattern) {
-                return Belt_Array.map(Belt_Option.getExn(Js_json.decodeArray(pattern)), (function (row) {
-                              return Belt_Array.map(Belt_Option.getExn(Js_json.decodeArray(row)), (function (entry) {
-                                            return Belt_Option.getExn(Js_json.decodeNumber(entry));
-                                          }));
-                            }));
-              }));
+        var hand = State.decode_json_matrix_3d(JSON.parse(State.decode_json_string(data["hand"])));
         return dispatch_game_state(State.hand_event, /* HAND */Block.__(3, [hand]));
     case "ID" : 
-        var id = Belt_Option.getExn(Js_json.decodeString(data["id"]));
+        var id = State.decode_json_string(data["id"]);
         return dispatch_game_state(State.id_event, /* ID */Block.__(2, [id]));
     case "MOVE" : 
-        var move = State.parse_move_object(Belt_Option.getExn(Js_json.decodeObject(data["move"])));
+        var move = State.parse_move_object(Belt_Option.getExn(Js_json.decodeObject(JSON.parse(State.decode_json_string(data["move"])))));
         return dispatch_game_state(State.move_event, /* MOVE */Block.__(0, [move]));
     case "PHASE" : 
-        var phase = Belt_Option.getExn(Js_json.decodeString(data["phase"]));
+        var phase = State.decode_json_string(data["phase"]);
         return dispatch_game_state(State.phase_event, /* PHASE */Block.__(4, [phase]));
     case "PLAYERS" : 
         var players = Belt_Array.map(Belt_Option.getExn(Js_json.decodeArray(data["players"])), (function (player) {
@@ -69,7 +63,7 @@ function handle_event($$event) {
               }));
         return dispatch_game_state(State.players_event, /* PLAYERS */Block.__(1, [players]));
     case "WINNER" : 
-        var winner = Belt_Option.getExn(Js_json.decodeString(data["winner"]));
+        var winner = State.decode_json_string(data["winner"]);
         return dispatch_game_state(State.winner_event, /* WINNER */Block.__(5, [winner]));
     default:
       return /* () */0;

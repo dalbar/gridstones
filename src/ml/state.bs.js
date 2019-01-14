@@ -6,6 +6,118 @@ import * as Js_json from "../../node_modules/bs-platform/lib/es6/js_json.js";
 import * as Belt_Array from "../../node_modules/bs-platform/lib/es6/belt_Array.js";
 import * as Belt_Option from "../../node_modules/bs-platform/lib/es6/belt_Option.js";
 import * as Belt_MapString from "../../node_modules/bs-platform/lib/es6/belt_MapString.js";
+import * as Caml_exceptions from "../../node_modules/bs-platform/lib/es6/caml_exceptions.js";
+
+var JSON_EXEP = Caml_exceptions.create("State.JSON_EXEP");
+
+function decode_json(json) {
+  var t = Js_json.classify(json);
+  if (typeof t === "number") {
+    switch (t) {
+      case 0 : 
+          return /* `Boolean */[
+                  -883944824,
+                  false
+                ];
+      case 1 : 
+          return /* `Boolean */[
+                  -883944824,
+                  true
+                ];
+      case 2 : 
+          return /* `Null */[
+                  870828711,
+                  null
+                ];
+      
+    }
+  } else {
+    switch (t.tag | 0) {
+      case 0 : 
+          return /* `String */[
+                  -976970511,
+                  t[0]
+                ];
+      case 1 : 
+          return /* `Number */[
+                  -703661335,
+                  t[0]
+                ];
+      case 2 : 
+          return /* `Object */[
+                  -908856609,
+                  t[0]
+                ];
+      case 3 : 
+          return /* `Array */[
+                  951901561,
+                  t[0]
+                ];
+      
+    }
+  }
+}
+
+function decode_json_string(json) {
+  var match = decode_json(json);
+  if (typeof match === "number") {
+    throw [
+          JSON_EXEP,
+          "not a string"
+        ];
+  } else if (match[0] !== -976970511) {
+    throw [
+          JSON_EXEP,
+          "not a string"
+        ];
+  } else {
+    return match[1];
+  }
+}
+
+function decode_json_number(json) {
+  var match = decode_json(json);
+  if (typeof match === "number") {
+    throw [
+          JSON_EXEP,
+          "not a number"
+        ];
+  } else if (match[0] !== -703661335) {
+    throw [
+          JSON_EXEP,
+          "not a number"
+        ];
+  } else {
+    return match[1];
+  }
+}
+
+function decode_json_number_array(json) {
+  var match = decode_json(json);
+  if (typeof match === "number") {
+    throw [
+          JSON_EXEP,
+          "not an array"
+        ];
+  } else if (match[0] !== 951901561) {
+    throw [
+          JSON_EXEP,
+          "not an array"
+        ];
+  } else {
+    return match[1];
+  }
+}
+
+function decode_json_matrix_2d(json) {
+  return Belt_Array.map(decode_json_number_array(json), (function (row) {
+                return Belt_Array.map(decode_json_number_array(row), decode_json_number);
+              }));
+}
+
+function decode_json_matrix_3d(json) {
+  return Belt_Array.map(decode_json_number_array(json), decode_json_matrix_2d);
+}
 
 function parse_int_from_dict(dict, key) {
   return Belt_Option.getExn(Js_json.decodeNumber(dict[key])) | 0;
@@ -194,6 +306,13 @@ var phase_event = "phase";
 var winner_event = "winner";
 
 export {
+  JSON_EXEP ,
+  decode_json ,
+  decode_json_string ,
+  decode_json_number ,
+  decode_json_number_array ,
+  decode_json_matrix_2d ,
+  decode_json_matrix_3d ,
   parse_int_from_dict ,
   parse_string_from_dict ,
   parse_move_object ,

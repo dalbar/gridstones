@@ -35,7 +35,7 @@ let has_match board_state pattern =
     Array.concatMany pattern
     |. Array.reduce 0 (fun acc slot -> if slot = 1 then acc + 1 else acc)
   in
-  Utils.conv board_state pattern
+  conv board_state pattern
   |. Array.concatMany
   |. Array.some (fun e -> e = num_stones)
 
@@ -63,8 +63,8 @@ let modify_slot board_state position state =
   | LOCKED -> LOCKED
 
 let board =
-  Utils.get_n_m_board grid_h grid_w 0
-  |. Utils.map_matrix (fun _ -> create_board_entry ())
+  get_n_m_board grid_h grid_w 0
+  |. map_matrix (fun _ -> create_board_entry ())
 
 let set_board x y value = set_unsafe board x y value
 
@@ -81,7 +81,7 @@ let draw_board ?(x_offset = 0.0) ?(y_offset = 0.0) w =
     for j = 0 to int_of_float grid_h_f - 1 do
       let slot = graphics object_factor in
       let apply f = slot |. f in
-      let fillColor = get_unsafe Utils.color_map j i |. parse_int 16 in
+      let fillColor = get_unsafe color_map j i |. parse_int 16 in
       let s_x = float_of_int j *. s_width in
       let s_y = float_of_int i *. s_height in
       let hit_zone =
@@ -160,6 +160,16 @@ let create_scores () =
   |. Array.mapWithIndex (fun idx _ ->
          text_with_style object_factory 16 (16 + (16 * idx)) "todo" style )
 
+let draw_hand w h = 
+  let padding = 20. in
+  let width = w /. 5. -. padding in
+  let y = 0.8 *. h in 
+  let draw_card idx pattern =
+    let idx_f = float_of_int idx in
+    let x = width *. idx_f +. padding *. idx_f in
+    Pattern_card.draw_card scene pattern x y width width in
+  Array.forEachWithIndex !config.state.hand draw_card
+
 let create () =
   let w, h =
     Scene.sysGet scene |. Scene.canvasGet
@@ -167,25 +177,22 @@ let create () =
   in
   let board_width = w *. 0.8 in
   draw_board ~x_offset:(0.1 *. w) ~y_offset:(0.15 *. h) board_width ;
-  let scores = create_scores () in
-  restrict_board ()
+  let _ = create_scores () in
+  restrict_board ();
+  draw_hand w h
 
 let handle_move {State.last_move; _} = Js.log2 "working" last_move
 
 let init _config =
   config := _config ;
-  !config.subscribe State.move_event handle_move
+  let _ = !config.subscribe State.move_event handle_move in 
+  ()
 
 let state = State.init ()
 
 let listeners = Map.String.empty
 
-(*
 let () =
-  let listeners, _ = State.subscribe listeners State.move_event handle_move in
-  State.dispatch state listeners State.move_event
-    (State.MOVE {x= 2; y= 2; next_player= "2"})
-  |. Js.log ;
-  Js.log listeners ;
-  Scene.createSet scene create
-*)
+  Scene.initSet scene init;
+  Scene.createSet scene create;
+  Scene.preloadSet scene preload;

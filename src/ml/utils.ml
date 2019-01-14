@@ -1,6 +1,8 @@
 (** This module contains various utility functions outside of the actual game logic.*)
 open Belt.Array
 
+open Js.Json
+
 type coordinates = {x: int; y: int}
 
 type size = {width: float; height: float}

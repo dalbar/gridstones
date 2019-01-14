@@ -18,11 +18,10 @@ module GameObject = struct
 
     external set_origin : text -> float -> float -> unit = "setOrigin"
       [@@bs.send]
-
   end
 
   module Sprite = struct
-    type sprite = {displayWidth: float; displayHeight: float}
+    type sprite = {mutable displayWidth: float; mutable displayHeight: float} [@@bs.deriving abstract]
 
     external create : unit -> sprite = "Sprite" [@@bs.new] [@@bs.module]
 
@@ -72,7 +71,7 @@ module GameObject = struct
   open Text
 
   external add_container :
-    container -> ([`Zone of zone | `Graphics of graphics][@bs.unwrap]) -> unit
+    container -> ([`Zone of zone | `Graphics of graphics | `Sprite of Sprite.sprite ][@bs.unwrap]) -> unit
     = "add"
     [@@bs.send]
 
@@ -89,6 +88,8 @@ module GameObject = struct
   external graphics : gameObjectFactory -> graphics = "graphics" [@@bs.send]
 
   external container : gameObjectFactory -> container = "container" [@@bs.send]
+
+  external sprite : gameObjectFactory -> float -> float -> string -> Sprite.sprite = "sprite" [@@bs.send]
 
   external text_with_style :
     gameObjectFactory -> int -> int -> string -> Text.style -> text
