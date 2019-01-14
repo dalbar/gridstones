@@ -6,21 +6,16 @@ import * as Utils from "./utils.bs.js";
 import * as Phaser from "phaser";
 import * as Belt_List from "../../node_modules/bs-platform/lib/es6/belt_List.js";
 import * as Belt_Array from "../../node_modules/bs-platform/lib/es6/belt_Array.js";
+import * as Belt_Option from "../../node_modules/bs-platform/lib/es6/belt_Option.js";
 import * as Caml_option from "../../node_modules/bs-platform/lib/es6/caml_option.js";
-import * as Pattern_card from "./pattern_card.bs.js";
 import * as Belt_MapString from "../../node_modules/bs-platform/lib/es6/belt_MapString.js";
 import * as Deck_generator from "./deck_generator.bs.js";
 
 var scene = new Phaser.Scene("board");
 
-var config = /* record */[/* contents */Utils.init_config(undefined, undefined, undefined, undefined, undefined, undefined, /* () */0)];
+var board_container = /* record */[/* contents */undefined];
 
-function init_marble(param) {
-  return /* record */[
-          /* sprite */undefined,
-          /* state : EMPTY */0
-        ];
-}
+var config = /* record */[/* contents */Utils.init_config(undefined, undefined, undefined, undefined, undefined, undefined, /* () */0)];
 
 function create_board_entry($staropt$star, $staropt$star$1, $staropt$star$2, $staropt$star$3, $staropt$star$4, param) {
   var value = $staropt$star !== undefined ? $staropt$star : 0;
@@ -37,61 +32,14 @@ function create_board_entry($staropt$star, $staropt$star$1, $staropt$star$2, $st
         ];
 }
 
-function has_match(board_state, pattern) {
-  var num_stones = Belt_Array.reduce(Belt_Array.concatMany(pattern), 0, (function (acc, slot) {
-          if (slot === 1) {
-            return acc + 1 | 0;
-          } else {
-            return acc;
-          }
-        }));
-  return Belt_Array.some(Belt_Array.concatMany(Utils.conv(board_state, pattern)), (function (e) {
-                return e === num_stones;
-              }));
-}
-
-function matches_any_rot(board_state, pattern) {
-  var matches_cur_board = function (p) {
-    return has_match(board_state, p);
-  };
-  return Belt_List.some(Belt_List.map(Deck_generator.get_all_rots(pattern), matches_cur_board), (function (isMatch) {
-                return isMatch;
-              }));
-}
-
-function matches_any_pattern(board_state, patterns) {
-  return Belt_Array.keep(Belt_Array.mapWithIndex(patterns, (function (i, pattern) {
-                    return /* tuple */[
-                            i,
-                            matches_any_rot(board_state, pattern)
-                          ];
-                  })), (function (param) {
-                return param[1];
-              }));
-}
-
-function modify_slot(board_state, position, state) {
-  var set_cur_board = function (x, y, value) {
-    return Utils.set_unsafe(board_state, x, y, value);
-  };
-  switch (state) {
-    case 0 : 
-        set_cur_board(position[/* x */0], position[/* y */1], 1);
-        return /* NEW */2;
-    case 1 : 
-        set_cur_board(position[/* x */0], position[/* y */1], 0);
-        return /* EMPTY */0;
-    case 2 : 
-        return /* NEW */2;
-    case 3 : 
-        return /* LOCKED */3;
-    
-  }
-}
-
 var board = Utils.map_matrix(Utils.get_n_m_board(6, 6, 0), (function (param) {
         return create_board_entry(undefined, undefined, undefined, undefined, undefined, /* () */0);
       }));
+
+var cards = Belt_Array.make(5, /* record */[
+      /* is_done */false,
+      /* container */undefined
+    ]);
 
 function set_board(x, y, value) {
   return Utils.set_unsafe(board, x, y, value);
@@ -101,11 +49,94 @@ function get_board(x, y) {
   return Utils.get_unsafe(board, x, y);
 }
 
+var scores = /* record */[/* contents */undefined];
+
+function has_match(pattern) {
+  var num_stones = Belt_Array.reduce(Belt_Array.concatMany(pattern), 0, (function (acc, slot) {
+          if (slot === 1) {
+            return acc + 1;
+          } else {
+            return acc;
+          }
+        }));
+  var board_matrix = Utils.map_matrix(board, (function (entry) {
+          return entry[/* value */0];
+        }));
+  return Belt_Array.some(Belt_Array.concatMany(Utils.conv(board_matrix, pattern)), (function (e) {
+                return e === num_stones;
+              }));
+}
+
+function matches_any_rot(pattern) {
+  return Belt_List.some(Belt_List.map(Deck_generator.get_all_rots(pattern), has_match), (function (isMatch) {
+                console.log(isMatch);
+                return isMatch;
+              }));
+}
+
+function matches_any_pattern(param) {
+  return Belt_Array.keep(Belt_Array.mapWithIndex(config[0][/* state */0][/* hand */4], (function (i, pattern) {
+                    return /* tuple */[
+                            i,
+                            has_match(pattern)
+                          ];
+                  })), (function (param) {
+                return param[1];
+              }));
+}
+
+function get_game_dim(param) {
+  var c = scene.sys.canvas;
+  return /* tuple */[
+          c.width,
+          c.height
+        ];
+}
+
+function get_board_dim(param) {
+  var match = get_game_dim(/* () */0);
+  var w = match[0];
+  return /* tuple */[
+          w * 0.8,
+          w * 0.8
+        ];
+}
+
+function modify_slot(x, y) {
+  var entry = Utils.get_unsafe(board, x, y);
+  var match = entry[/* state */3];
+  if (match !== 0) {
+    switch (match - 1 | 0) {
+      case 0 : 
+          return /* tuple */[
+                  0,
+                  /* EMPTY */0
+                ];
+      case 1 : 
+          return /* tuple */[
+                  1,
+                  /* NEW */2
+                ];
+      case 2 : 
+          return /* tuple */[
+                  0,
+                  /* LOCKED */3
+                ];
+      
+    }
+  } else {
+    return /* tuple */[
+            1,
+            /* NEW */2
+          ];
+  }
+}
+
 function draw_board($staropt$star, $staropt$star$1, w) {
   var x_offset = $staropt$star !== undefined ? $staropt$star : 0.0;
   var y_offset = $staropt$star$1 !== undefined ? $staropt$star$1 : 0.0;
   var object_factor = scene.add;
-  var board_container = object_factor.container();
+  var board_container_ = object_factor.container();
   var grid_w_f = 6;
   var grid_h_f = 6;
   var s_width = w / grid_w_f;
@@ -140,10 +171,10 @@ function draw_board($staropt$star, $staropt$star$1, w) {
       slot.fillRect(param$6, param$5, s_width, s_height);
       slot.strokePath();
       hit_zone.setInteractive();
-      board_container.add(slot);
-      board_container.add(hit_zone);
-      var init = Utils.get_unsafe(board, i, j);
-      set_board(i, j, /* record */[
+      board_container_.add(slot);
+      board_container_.add(hit_zone);
+      var init = Utils.get_unsafe(board, j, i);
+      set_board(j, i, /* record */[
             /* value */init[/* value */0],
             /* zone */Caml_option.some(hit_zone),
             /* graphics */Caml_option.some(slot),
@@ -152,7 +183,8 @@ function draw_board($staropt$star, $staropt$star$1, w) {
           ]);
     }
   }
-  board_container.setPosition(x_offset, y_offset);
+  board_container_.setPosition(x_offset, y_offset);
+  board_container[0] = Caml_option.some(board_container_);
   return /* () */0;
 }
 
@@ -198,23 +230,6 @@ function lock_col(idx) {
   }
 }
 
-function handle_slot_clicked(param) {
-  return /* () */0;
-}
-
-function add_board_events(param) {
-  var add_click_callback = function (entry) {
-    var match = entry[/* zone */1];
-    if (match !== undefined) {
-      Caml_option.valFromOption(match).on("pointerdown", handle_slot_clicked);
-      return /* () */0;
-    } else {
-      return /* () */0;
-    }
-  };
-  return Utils.for_each_matrix(board, add_click_callback);
-}
-
 function restrict_board(param) {
   if (config[0][/* state */0][/* players */1].length < 4) {
     lock_row(5);
@@ -234,42 +249,293 @@ function create_scores(param) {
     fill: "#000",
     fontSize: "16px"
   };
-  return Belt_Array.mapWithIndex(Belt_Array.make(5, 0), (function (idx, param) {
-                return object_factory.text(16, 16 + (idx << 4) | 0, "todo", style);
-              }));
+  var _scores = Belt_Array.mapWithIndex(config[0][/* state */0][/* players */1].slice(0), (function (idx, player) {
+          var text = "Player " + (String(idx + 1 | 0) + (
+              player[/* id */0] === config[0][/* state */0][/* id */2] ? " (me)" : ""
+            ));
+          return /* tuple */[
+                  player[/* id */0],
+                  object_factory.text(16, 16 + (idx << 4) | 0, text, style)
+                ];
+        }));
+  scores[0] = _scores;
+  return /* () */0;
+}
+
+function create_sprite(factory, key, x, y, w, h) {
+  var s = factory.sprite(x, y, key);
+  s.displayWidth = w;
+  s.displayHeight = h;
+  return s;
+}
+
+function draw_card(scene, pattern, x, y, w, h) {
+  var object_factory = scene.add;
+  var card_container = object_factory.container();
+  var s_width = w / 3.0;
+  var s_height = h / 3.0;
+  var match = Utils.scale_marble_size(s_width, s_height, 30.0);
+  var m_height = match[/* height */1];
+  var m_width = match[/* width */0];
+  for(var i = 0; i <= 2; ++i){
+    for(var j = 0; j <= 2; ++j){
+      var slot = object_factory.graphics();
+      var s_x = j * s_width;
+      var s_y = i * s_height;
+      var param = parseInt("E1E2E1", 16);
+      slot.lineStyle(5.0, param, 1.0);
+      var param$1 = parseInt("bbdefb", 16);
+      slot.fillStyle(param$1, 1.0);
+      slot.beginPath();
+      if (i === 0) {
+        slot.moveTo(s_x, s_y);
+        var param$2 = s_x + s_width;
+        slot.lineTo(param$2, s_y);
+      }
+      var param$3 = s_x + s_width;
+      slot.moveTo(param$3, s_y);
+      var param$4 = s_y + s_height;
+      var param$5 = s_x + s_width;
+      slot.lineTo(param$5, param$4);
+      var param$6 = s_y + s_height;
+      slot.lineTo(s_x, param$6);
+      if (j === 0) {
+        slot.lineTo(s_x, s_y);
+      }
+      var param$7 = i * s_height;
+      var param$8 = j * s_width;
+      slot.fillRect(param$8, param$7, s_width, s_height);
+      slot.strokePath();
+      card_container.add(slot);
+      if (Utils.get_unsafe(pattern, j, i) === 1.0) {
+        var marble_sprite = create_sprite(object_factory, "marble", s_x + s_width * 0.5, s_y + s_height * 0.5, m_width, m_height);
+        card_container.add(marble_sprite);
+      }
+      
+    }
+  }
+  card_container.setPosition(x, y);
+  return card_container;
+}
+
+function get_card(idx) {
+  return Belt_Array.getExn(cards, idx);
+}
+
+function draw_done_overlay(idx) {
+  var cur_card = Belt_Array.getExn(cards, idx);
+  var match = cur_card[/* container */1];
+  if (match !== undefined) {
+    if (cur_card[/* is_done */0] === false) {
+      var container = Caml_option.valFromOption(match);
+      var object_factory = scene.add;
+      var overlay = object_factory.graphics();
+      var width = container.displayWidth;
+      var height = container.displayHeight;
+      overlay.fillStyle(parseInt("757575", 16), 0.5);
+      overlay.fillRect(0.0, 0.0, width, height);
+      var done_sprite = create_sprite(object_factory, "check", width * 0.5, height * 0.5, width * 0.3, width * 0.3);
+      done_sprite.setOrigin(0.5, 0.5);
+      container.add(overlay);
+      container.add(done_sprite);
+      return /* () */0;
+    } else {
+      return 0;
+    }
+  } else {
+    console.log("no container");
+    return /* () */0;
+  }
 }
 
 function draw_hand(w, h) {
   var width = w / 5 - 20;
   var y = 0.8 * h;
-  var draw_card = function (idx, pattern) {
+  var draw_card$1 = function (idx, pattern) {
     var idx_f = idx;
     var x = width * idx_f + 20 * idx_f;
-    return Pattern_card.draw_card(scene, pattern, x, y, width, width);
+    var container = Caml_option.some(draw_card(scene, pattern, x, y, width, width));
+    return Belt_Array.setExn(cards, idx, /* record */[
+                /* is_done */false,
+                /* container */container
+              ]);
   };
-  return Belt_Array.forEachWithIndex(config[0][/* state */0][/* hand */4], draw_card);
+  return Belt_Array.forEachWithIndex(config[0][/* state */0][/* hand */4], draw_card$1);
+}
+
+function isTurn($staropt$star, param) {
+  var id = $staropt$star !== undefined ? $staropt$star : config[0][/* state */0][/* id */2];
+  return id === config[0][/* state */0][/* last_move */0][/* next_player */2];
+}
+
+function finish_turn(x, y) {
+  Utils.for_each_matrix_with_index(board, (function (i, j, slot) {
+          if (slot[/* state */3] === /* NEW */2) {
+            return set_board(i, j, /* record */[
+                        /* value */slot[/* value */0],
+                        /* zone */slot[/* zone */1],
+                        /* graphics */slot[/* graphics */2],
+                        /* state : PLACED */1,
+                        /* sprite */slot[/* sprite */4]
+                      ]);
+          } else {
+            return 0;
+          }
+        }));
+  if (isTurn(undefined, /* () */0)) {
+    return Curry._2(config[0][/* send_move */2], x, y);
+  } else {
+    return 0;
+  }
+}
+
+function destroy_sprite_safe(sprite) {
+  if (sprite !== undefined) {
+    Caml_option.valFromOption(sprite).destroy();
+    return /* () */0;
+  } else {
+    console.log("nothing to destroy");
+    return /* () */0;
+  }
+}
+
+function draw_marble_in_zone(zone) {
+  var object_factory = scene.add;
+  var match = get_board_dim(/* () */0);
+  var zone$1 = Belt_Option.getExn(zone);
+  var marble_x = zone$1.x;
+  var marble_y = zone$1.y;
+  var match$1 = Utils.scale_marble_size(match[0], match[1], 30.0);
+  var sprite_object = create_sprite(object_factory, "marble", marble_x, marble_y, match$1[/* width */0], match$1[/* height */1]);
+  Belt_Option.getExn(board_container[0]).add(sprite_object);
+  return sprite_object;
+}
+
+function find_match(param) {
+  var matches = matches_any_pattern(/* () */0);
+  if (matches.length !== 0) {
+    return Belt_Array.getExn(matches, 0)[0];
+  } else {
+    return -1;
+  }
+}
+
+function handle_slot_clicked(x, y) {
+  var match = Utils.get_unsafe(board, x, y);
+  var state = match[/* state */3];
+  if (state !== /* LOCKED */3 && state !== /* NEW */2) {
+    var match$1 = modify_slot(x, y);
+    var new_state = match$1[1];
+    var new_sprite = new_state === /* EMPTY */0 ? (destroy_sprite_safe(match[/* sprite */4]), undefined) : Caml_option.some(draw_marble_in_zone(match[/* zone */1]));
+    finish_turn(x, y);
+    var init = Utils.get_unsafe(board, x, y);
+    set_board(x, y, /* record */[
+          /* value */match$1[0],
+          /* zone */init[/* zone */1],
+          /* graphics */init[/* graphics */2],
+          /* state */new_state,
+          /* sprite */new_sprite
+        ]);
+    var match_idx = find_match(/* () */0);
+    if (match_idx !== -1) {
+      return draw_done_overlay(match_idx);
+    } else {
+      return 0;
+    }
+  } else {
+    return 0;
+  }
+}
+
+function add_board_events(param) {
+  var add_click_callback = function (i, j, slot) {
+    var match = slot[/* zone */1];
+    if (match !== undefined) {
+      Caml_option.valFromOption(match).on("pointerdown", (function (param) {
+              if (isTurn(undefined, /* () */0)) {
+                return handle_slot_clicked(i, j);
+              } else {
+                return 0;
+              }
+            }));
+      return /* () */0;
+    } else {
+      return /* () */0;
+    }
+  };
+  return Utils.for_each_matrix_with_index(board, add_click_callback);
 }
 
 function create(param) {
-  var c = scene.sys.canvas;
-  var w = c.width;
-  var h = c.height;
-  var board_width = w * 0.8;
-  draw_board(0.1 * w, 0.15 * h, board_width);
+  var match = get_game_dim(/* () */0);
+  var h = match[1];
+  var w = match[0];
+  var width = w * 0.8;
+  draw_board(0.1 * w, 0.15 * h, width);
   create_scores(/* () */0);
   restrict_board(/* () */0);
+  add_board_events(/* () */0);
   return draw_hand(w, h);
 }
 
-function handle_move(param) {
-  console.log("working", param[/* last_move */0]);
-  return /* () */0;
+function handle_move(move) {
+  var y = move[/* y */1];
+  var x = move[/* x */0];
+  if (x > 0 && y > 0 && isTurn(undefined, /* () */0) === false) {
+    return handle_slot_clicked(x, y);
+  } else {
+    return 0;
+  }
+}
+
+function update_scores(param) {
+  var match = scores[0];
+  if (match !== undefined) {
+    return Belt_Array.forEach(match, (function (param) {
+                  param[1].setFontStyle(isTurn(param[0], /* () */0) ? "bold" : "");
+                  return /* () */0;
+                }));
+  } else {
+    return /* () */0;
+  }
 }
 
 function init(_config) {
   config[0] = _config;
-  Curry._2(config[0][/* subscribe */1], State.move_event, handle_move);
+  Curry._2(config[0][/* subscribe */1], State.move_event, (function (state) {
+          handle_move(state[/* last_move */0]);
+          var init = config[0];
+          config[0] = /* record */[
+            /* state */state,
+            /* subscribe */init[/* subscribe */1],
+            /* send_move */init[/* send_move */2],
+            /* send_winner */init[/* send_winner */3],
+            /* handle_register */init[/* handle_register */4],
+            /* send_start */init[/* send_start */5]
+          ];
+          return /* () */0;
+        }));
+  Curry._2(config[0][/* subscribe */1], State.winner_event, (function (state) {
+          console.log("winner");
+          var init = config[0];
+          config[0] = /* record */[
+            /* state */state,
+            /* subscribe */init[/* subscribe */1],
+            /* send_move */init[/* send_move */2],
+            /* send_winner */init[/* send_winner */3],
+            /* handle_register */init[/* handle_register */4],
+            /* send_start */init[/* send_start */5]
+          ];
+          var manager = scene.game.scene;
+          manager.stop("board");
+          manager.start("end", config[0]);
+          return /* () */0;
+        }));
   return /* () */0;
+}
+
+function update(param) {
+  return update_scores(/* () */0);
 }
 
 var state = State.init(/* () */0);
@@ -279,6 +545,8 @@ scene.init = init;
 scene.create = create;
 
 scene.preload = preload;
+
+scene.update = update;
 
 var grid_w = 6;
 
@@ -290,29 +558,44 @@ export {
   scene ,
   grid_w ,
   grid_h ,
+  board_container ,
   config ,
-  init_marble ,
   create_board_entry ,
+  board ,
+  cards ,
+  set_board ,
+  get_board ,
+  scores ,
   has_match ,
   matches_any_rot ,
   matches_any_pattern ,
+  get_game_dim ,
+  get_board_dim ,
   modify_slot ,
-  board ,
-  set_board ,
-  get_board ,
   draw_board ,
   preload ,
   lock_slot ,
   lock_row ,
   lock_col ,
-  handle_slot_clicked ,
-  add_board_events ,
   restrict_board ,
   create_scores ,
+  create_sprite ,
+  draw_card ,
+  get_card ,
+  draw_done_overlay ,
   draw_hand ,
+  isTurn ,
+  finish_turn ,
+  destroy_sprite_safe ,
+  draw_marble_in_zone ,
+  find_match ,
+  handle_slot_clicked ,
+  add_board_events ,
   create ,
   handle_move ,
+  update_scores ,
   init ,
+  update ,
   state ,
   listeners ,
   
