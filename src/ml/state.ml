@@ -131,6 +131,6 @@ let subscribe listeners event fn =
 let unsubscribe listeners event idx =
   try
     Belt_MapString.getExn listeners event
-    |. Array.keepWithIndex (fun _ i -> i = idx)
+    |. Array.keepWithIndex (fun _ i -> i <> idx)
     |> Belt_MapString.set listeners event
   with _ -> listeners

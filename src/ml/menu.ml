@@ -20,13 +20,14 @@ let unsubscribe () =
 
 
 let start_game {State.phase; State.id; _} =
-  Js.log "running";
   if phase = "start" then
     if id <> "" then (
+      Js.log "start game menu";
       Scene.gameGet scene |. sceneGet
       |. fun m ->
       SceneManager.stop m "menu";
       SceneManager.stop m "end";
+      unsubscribe ();
       SceneManager.start m "board" !config )
     else
       match !start_button with

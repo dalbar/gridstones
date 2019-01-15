@@ -32,7 +32,7 @@ const hanldeMessage = (message, ws) => {
       break;
     case "SCORE": 
       const {id } = message;
-      handleScore(id)
+      //handleScore(id)
       break;
   }
 }

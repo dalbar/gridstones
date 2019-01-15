@@ -30,6 +30,15 @@ let create_board_entry ?(value = 0) ?(zone = None) ?(graphics = None)
     ?(sprite = None) ?(state = EMPTY) () =
   {value; zone; graphics; state; sprite}
 
+let subs = Belt.MutableStack.make ()
+
+let unsubscribe () = 
+  let rec loop () = 
+    match Belt.MutableStack.pop subs with
+    | Some (event, idx) -> !config.unsubscribe event idx; loop ()
+    | None -> () in 
+  loop()
+
 
 let board: board_entry array array option ref = ref None
 
@@ -172,7 +181,7 @@ let create_sprite factory key x y w h =
   Sprite.displayHeightSet s h;
   s
 
-let draw_card scene pattern x y w h = 
+let draw_card scene pattern x y w h =
   let object_factory = Scene.addGet scene in
   let card_container = container object_factory in
   let card_w_f = 3.0 in
@@ -318,28 +327,31 @@ let create () =
 
 let handle_move move =  
   let { State.x; State.y; _ } = move in
-  if x > 0 && y > 0 && isTurn () = false 
-    then handle_slot_clicked x y
+  if x > 0 && y > 0
+    then ( Js.log "handle_move"; handle_slot_clicked x y)
+
 
 let create_board () = 
   get_n_m_board grid_h grid_w 0
     |. map_matrix (fun _ -> create_board_entry ())
+
 let init _config =
+  let push_sub t  = Belt.MutableStack.push subs t in
   board := Some (create_board ());
   config := _config ;
-  let _ = !config.subscribe State.move_event (fun state -> 
-    handle_move state.last_move;
-    config := { !config with state }) in
-  let _= !config.subscribe State.players_event (fun state -> 
+  !config.subscribe State.move_event (fun state -> 
+    if isTurn () = false then handle_move state.last_move;
+    config := { !config with state};
+     ) |. push_sub;
+  !config.subscribe State.players_event (fun state -> 
     config := { !config with state}
-  ) in
-  let _ = !config.subscribe State.winner_event (fun state -> 
+  ) |. push_sub;
+  !config.subscribe State.winner_event (fun state -> 
     config := { !config with state };
     let manager =  Scene.gameGet scene |. sceneGet in
     SceneManager.stop manager "board";
-    SceneManager.start manager "end" !config;
-  ) in
-  ()
+    unsubscribe ();
+    SceneManager.start manager "end" !config ) |.  push_sub
 
 let update () =
   let update_scores () = 

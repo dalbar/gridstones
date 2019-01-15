@@ -1,8 +1,12 @@
 open Belt
 open Node.Fs
-open Utils
 
 exception DIM of string
+
+let get_unsafe matrix x_ind y_ind = Array.getExn matrix y_ind |. Array.getExn x_ind
+
+let set_unsafe matrix x_ind y_ind value =
+  Array.getExn matrix y_ind |. Array.setExn x_ind value
 
 let generate_one_stone_permutations row =
   let fill_copy idx =
@@ -57,9 +61,12 @@ let shape_quad m array =
     in
     loop 0 ; res
 
-let has_at_least_n_stones array n =
+let get_num_stones array = 
   Array.reduce array 0 (fun acc value -> if value = 1. then acc + 1 else acc)
-  |. ( >= ) n
+
+let num_stones_pred array min max =
+  let num = get_num_stones array in
+  num >= min && num <= max
 
 let generate_pattern ?(min_stones = 0) size max_stones =
   let rows = generate_row_permutations size max_stones in
@@ -72,7 +79,7 @@ let generate_pattern ?(min_stones = 0) size max_stones =
       loop (cur_rows + 1) new_res
   in
   loop 1 rows |. filter_dups_from_list
-  |. List.keep (fun array -> has_at_least_n_stones array min_stones)
+  |. List.keep (fun array -> num_stones_pred array min_stones max_stones)
   |. List.map (fun matrix -> shape_quad size matrix)
 
 let write_deck deck dest = writeFileSync dest deck `ascii
@@ -127,13 +134,10 @@ let filter_rot_equal matrices =
   List.reduce matrices not_rot_equal (fun acc row ->
       if List.has acc row is_rot_equal then acc else List.add acc row )
 
-(*
-  this code only works on the backend with node; enable commonjs and regenerate 
- let generate_3_3_4_5 () = let deck_string = generate_pattern ~min_stones:4 3 5 
-  |. filter_rot_equal 
-  |. List.map (fun pattern -> Js_json.stringifyAny pattern 
-  |. Option.getExn) |> String.concat ",\n" in
-  String.concat "\n" ["const create_deck = () => ["; deck_string; "]\module.exports = { createDeck : create_deck};" ] |. write_deck "deck.js"
-
-
-let () = generate_3_3_4_5 () *)
+let generate_s_min_max s min max =
+  let deck_string = generate_pattern ~min_stones:min s max 
+    |. filter_rot_equal 
+    |. List.map (fun pattern -> Js_json.stringifyAny pattern 
+    |. Option.getExn) |> String.concat ",\n" in
+  Printf.sprintf "const create_deck = () => [ %s ]\nmodule.exports = { createDeck : create_deck};" deck_string
+  |. write_deck (Printf.sprintf "deck_%d_%d_%d.js" s min max)
