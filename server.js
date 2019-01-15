@@ -7,7 +7,7 @@ const decks = require('./deck');
 const wss = new WebSocket.Server({ host: "127.0.0.1", port: 8081 });
 const players = new Map();
 const playOrder = [];
-const curDeck = decks.createDeck();
+let curDeck = [];
 let curPlayer = 0;
 
 
@@ -30,12 +30,34 @@ const hanldeMessage = (message, ws) => {
       const move = JSON.parse(message.move);
       handleMove(move);
       break;
-    case "WINNER":
-      broadcast(JSON.stringify(message));
-      playOrder.splice(0, playOrder.length);
-      gameState = "waiting"
+    case "SCORE": 
+      const {id } = message;
+      handleScore(id)
       break;
   }
+}
+
+const handleScore = id => {
+  const cur_player = players.get(id);
+  if (cur_player.score === 1) handleWinner(id)
+  else {
+    players.set(id, Object.assign({}, cur_player, { score: cur_player.score - 1}));
+    broadcastAllPlayers();
+  }
+}
+
+const handleWinner = id => {
+  players.forEach((v, i) => players.set(i, Object.assign({}, v, {score: 5})));
+  broadcast(JSON.stringify({type: "WINNER", id}));
+  playOrder.splice(0, playOrder.length);
+  gameState = "waiting"
+}
+
+const handleClose = ws => {
+  const { playerID } = ws;
+  players.delete(playerID);
+  handleWinner("");
+  broadcastAllPlayers();
 }
 
 const filterGameRelevant = ({ id, score }) => {
@@ -43,7 +65,7 @@ const filterGameRelevant = ({ id, score }) => {
 }
 
 const handleStart = () => {
-  if (players.size > 1) {
+  if (players.size > 1 && players.size < 5) {
     gameState = "start";
     players.forEach((value, id) => {
       playOrder.push(id);
@@ -75,6 +97,9 @@ const dealHand = ws => {
   const getRandomInt = max => {
     return Math.floor(Math.random() * Math.floor(max));
   };
+  if(curDeck.length < 5){
+    curDeck = decks.createDeck();
+  }
   const hand = [...Array(5).keys()].map(() =>
     curDeck.splice(getRandomInt(curDeck.length - 1), 1)[0]
   );
@@ -87,10 +112,8 @@ broadcastAllPlayers = () => {
   players.forEach(value => gameRelevantMessage.push(filterGameRelevant(value)));
   broadcast(JSON.stringify({ type: "PLAYERS", players: gameRelevantMessage }));
 }
-const handleClose = ws => {
-  const { playerID } = ws;
-  players.delete(playerID);
-}
+
+
 
 wss.on('connection', function connection(ws) {
   ws.on('message', function incoming(message) {

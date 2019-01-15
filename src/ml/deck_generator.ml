@@ -6,26 +6,26 @@ exception DIM of string
 
 let generate_one_stone_permutations row =
   let fill_copy idx =
-    Array.copy row |. fun row -> Array.setExn row idx 1 ; row
+    Array.copy row |. fun row -> Array.setExn row idx 1. ; row
   in
   let rec loop perm idx =
     try
       let cur_value = Array.getExn row idx in
       match cur_value with
-      | -1 -> List.add perm (fill_copy idx) |. loop (idx + 1)
+      | -1. -> List.add perm (fill_copy idx) |. loop (idx + 1)
       | _ -> loop perm (idx + 1)
     with _ -> perm
   in
   loop (List.make 0 row) 0
 
 let filter_dups_from_list perm =
-  let no_dup = List.make 0 (Array.make 0 0) in
+  let no_dup = List.make 0 (Array.make 0 0.) in
   List.reduce perm no_dup (fun acc row ->
       if List.has acc row (fun l1 l2 -> Array.eq l1 l2 ( = )) then acc
       else List.add acc row )
 
 let generate_row_permutations size max_stones =
-  let empty_row = Array.make size (-1) in
+  let empty_row = Array.make size (-1.) in
   let res = List.make 1 empty_row in
   let rec loop cur_stones latest_rows res =
     if cur_stones > max_stones then res
@@ -40,14 +40,14 @@ let generate_row_permutations size max_stones =
   filter_dups_from_list with_dup
 
 let append_matrix matrix rows =
-  let res = List.make 0 (Array.make 0 0) in
+  let res = List.make 0 (Array.make 0 0.) in
   List.reduce rows res (fun acc row -> Array.concat matrix row |> List.add acc)
 
 let shape_quad m array =
   let len = Array.length array in
   if len mod m > 0 then raise (DIM "Dimensions do not match!")
   else
-    let res = Array.make (len / m) (Array.make 0 0) in
+    let res = Array.make (len / m) (Array.make 0 0.) in
     let rec loop cur_idx =
       if cur_idx > len - m then ()
       else
@@ -58,7 +58,7 @@ let shape_quad m array =
     loop 0 ; res
 
 let has_at_least_n_stones array n =
-  Array.reduce array 0 (fun acc value -> if value = 1 then acc + 1 else acc)
+  Array.reduce array 0 (fun acc value -> if value = 1. then acc + 1 else acc)
   |. ( >= ) n
 
 let generate_pattern ?(min_stones = 0) size max_stones =
@@ -79,7 +79,7 @@ let write_deck deck dest = writeFileSync dest deck `ascii
 
 let rot90_square matrix =
   let dim = Array.length matrix in
-  let rotated = Array.make dim (-1) |. Array.map (Array.make dim) in
+  let rotated = Array.make dim (-1.) |. Array.map (Array.make dim) in
   for i = 0 to dim - 1 do
     for j = 0 to dim - 1 do
       get_unsafe matrix j i |> set_unsafe rotated (dim - i - 1) j
@@ -120,9 +120,20 @@ let is_rot_equal m1 m2 =
   in
   get_all_rots m2 |. loop
 
-let make_n_m_matrix n m = Array.make n 0 |. Array.map (Array.make m)
+let make_n_m_matrix n m = Array.make n 0. |. Array.map (Array.make m)
 
 let filter_rot_equal matrices =
   let not_rot_equal = List.make 0 (make_n_m_matrix 0 0) in
   List.reduce matrices not_rot_equal (fun acc row ->
       if List.has acc row is_rot_equal then acc else List.add acc row )
+
+(*
+  this code only works on the backend with node; enable commonjs and regenerate 
+ let generate_3_3_4_5 () = let deck_string = generate_pattern ~min_stones:4 3 5 
+  |. filter_rot_equal 
+  |. List.map (fun pattern -> Js_json.stringifyAny pattern 
+  |. Option.getExn) |> String.concat ",\n" in
+  String.concat "\n" ["const create_deck = () => ["; deck_string; "]\module.exports = { createDeck : create_deck};" ] |. write_deck "deck.js"
+
+
+let () = generate_3_3_4_5 () *)
