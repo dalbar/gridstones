@@ -9,12 +9,24 @@ let start_button : Text.text option ref = ref None
 
 let player_count : Text.text option ref = ref None
 
+let subs = Belt.MutableStack.make ()
+
+let unsubscribe () = 
+  let rec loop () = 
+    match Belt.MutableStack.pop subs with
+    | Some (event, idx) -> !config.unsubscribe event idx; loop ()
+    | None -> () in 
+  loop()
+
+
 let start_game {State.phase; State.id; _} =
+  Js.log "running";
   if phase = "start" then
     if id <> "" then (
       Scene.gameGet scene |. sceneGet
       |. fun m ->
-      SceneManager.stop m "menu" ;
+      SceneManager.stop m "menu";
+      SceneManager.stop m "end";
       SceneManager.start m "board" !config )
     else
       match !start_button with
@@ -49,14 +61,14 @@ let create () =
   player_count := Some new_player_count
 
 let init _config =
+  let push_sub t  = Belt.MutableStack.push subs t in
   let update_state state = config := {!config with state} in
   config := _config ;
   if !config.state.id = "" then !config.handle_register () ;
-  let _ = !config.subscribe State.players_event update_state in
-  let _ = !config.subscribe State.id_event update_state in
-  let _ = !config.subscribe State.hand_event update_state in
-  let _ = !config.subscribe State.phase_event start_game in
-  ()
+  !config.subscribe State.players_event update_state |. push_sub;
+  !config.subscribe State.id_event update_state |. push_sub;
+  !config.subscribe State.hand_event update_state |. push_sub; 
+  !config.subscribe State.phase_event start_game |. push_sub
 
 let update () =
   match !player_count with

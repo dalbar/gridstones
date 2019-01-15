@@ -9,11 +9,13 @@ type player = {score: int; id: string}
 
 type scene_config =
   { state: State.state
-  ; subscribe: string -> (State.state -> unit) -> int
+  ; subscribe: string -> (State.state -> unit) -> (string * int)
   ; send_move: float -> float -> unit
   ; send_winner: string -> unit
   ; handle_register: unit -> unit
-  ; send_start: unit -> unit }
+  ; send_start: unit -> unit
+  ; dec_score: string -> unit
+  ; unsubscribe:  string -> int -> unit }
 
 external parse_int : string -> int -> int = "parseInt" [@@bs.val]
 
@@ -85,7 +87,7 @@ let color_map =
 let get_board_idx x y grid_h = (y *. grid_h) +. x
 
 
-let init_config ?(state = State.init ()) ?(subscribe = fun _ _ -> -1)
+let init_config ?(state = State.init ()) ?(subscribe = fun _ _ -> "", -1)
     ?(send_move = fun _ _ -> ()) ?(send_winner = fun _ -> ())
-    ?(handle_register = fun () -> ()) ?(send_start = fun () -> ()) () =
-  {state; subscribe; send_move; send_winner; handle_register; send_start}
+    ?(handle_register = fun () -> ()) ?(send_start = fun () -> ()) ?(dec_score = fun _ -> ()) ?(unsubscribe = fun _ _ -> ()) () =
+  {state; subscribe; send_move; send_winner; handle_register; send_start; dec_score; unsubscribe}

@@ -10,12 +10,15 @@ import * as Belt_Option from "../../node_modules/bs-platform/lib/es6/belt_Option
 import * as Caml_option from "../../node_modules/bs-platform/lib/es6/caml_option.js";
 import * as Belt_MapString from "../../node_modules/bs-platform/lib/es6/belt_MapString.js";
 import * as Deck_generator from "./deck_generator.bs.js";
+import * as Caml_exceptions from "../../node_modules/bs-platform/lib/es6/caml_exceptions.js";
+
+var BOARD_ERROR = Caml_exceptions.create("Board.BOARD_ERROR");
 
 var scene = new Phaser.Scene("board");
 
 var board_container = /* record */[/* contents */undefined];
 
-var config = /* record */[/* contents */Utils.init_config(undefined, undefined, undefined, undefined, undefined, undefined, /* () */0)];
+var config = /* record */[/* contents */Utils.init_config(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, /* () */0)];
 
 function create_board_entry($staropt$star, $staropt$star$1, $staropt$star$2, $staropt$star$3, $staropt$star$4, param) {
   var value = $staropt$star !== undefined ? $staropt$star : 0;
@@ -32,9 +35,7 @@ function create_board_entry($staropt$star, $staropt$star$1, $staropt$star$2, $st
         ];
 }
 
-var board = Utils.map_matrix(Utils.get_n_m_board(6, 6, 0), (function (param) {
-        return create_board_entry(undefined, undefined, undefined, undefined, undefined, /* () */0);
-      }));
+var board = /* record */[/* contents */undefined];
 
 var cards = Belt_Array.make(5, /* record */[
       /* is_done */false,
@@ -44,11 +45,24 @@ var cards = Belt_Array.make(5, /* record */[
     ]);
 
 function set_board(x, y, value) {
-  return Utils.set_unsafe(board, x, y, value);
+  var match = board[0];
+  if (match !== undefined) {
+    return Utils.set_unsafe(match, x, y, value);
+  } else {
+    return /* () */0;
+  }
 }
 
 function get_board(x, y) {
-  return Utils.get_unsafe(board, x, y);
+  var match = board[0];
+  if (match !== undefined) {
+    return Utils.get_unsafe(match, x, y);
+  } else {
+    throw [
+          BOARD_ERROR,
+          "no entry fond"
+        ];
+  }
 }
 
 var scores = /* record */[/* contents */undefined];
@@ -61,7 +75,7 @@ function has_match(pattern) {
             return acc;
           }
         }));
-  var board_matrix = Utils.map_matrix(board, (function (entry) {
+  var board_matrix = Utils.map_matrix(Belt_Option.getExn(board[0]), (function (entry) {
           return entry[/* value */0];
         }));
   return Belt_Array.some(Belt_Array.concatMany(Utils.conv(board_matrix, pattern)), (function (e) {
@@ -104,7 +118,7 @@ function get_board_dim(param) {
 }
 
 function modify_slot(x, y) {
-  var entry = Utils.get_unsafe(board, x, y);
+  var entry = get_board(x, y);
   var match = entry[/* state */3];
   if (match !== 0) {
     switch (match - 1 | 0) {
@@ -174,7 +188,7 @@ function draw_board($staropt$star, $staropt$star$1, w) {
       hit_zone.setInteractive();
       board_container_.add(slot);
       board_container_.add(hit_zone);
-      var init = Utils.get_unsafe(board, j, i);
+      var init = get_board(j, i);
       set_board(j, i, /* record */[
             /* value */init[/* value */0],
             /* zone */Caml_option.some(hit_zone),
@@ -199,7 +213,7 @@ function preload(param) {
 }
 
 function lock_slot(x, y) {
-  var init = Utils.get_unsafe(board, x, y);
+  var init = get_board(x, y);
   return set_board(x, y, /* record */[
               /* value */init[/* value */0],
               /* zone */init[/* zone */1],
@@ -251,12 +265,9 @@ function create_scores(param) {
     fontSize: "16px"
   };
   var _scores = Belt_Array.mapWithIndex(config[0][/* state */0][/* players */1].slice(0), (function (idx, player) {
-          var text = "Player " + (String(idx + 1 | 0) + (
-              player[/* id */0] === config[0][/* state */0][/* id */2] ? " (me)" : ""
-            ));
           return /* tuple */[
                   player[/* id */0],
-                  object_factory.text(16, 16 + (idx << 4) | 0, text, style)
+                  object_factory.text(16, 16 + (idx << 4) | 0, "", style)
                 ];
         }));
   scores[0] = _scores;
@@ -323,14 +334,13 @@ function get_card(idx) {
   return Belt_Array.getExn(cards, idx);
 }
 
-function draw_done_overlay(idx) {
-  var match = Belt_Array.getExn(cards, idx);
-  var container = match[/* container */1];
+function draw_done_overlay(card) {
+  var container = card[/* container */1];
   if (container !== undefined) {
-    if (match[/* is_done */0] === false) {
+    if (card[/* is_done */0] === false) {
       var container$1 = Caml_option.valFromOption(container);
-      var height = match[/* height */3];
-      var width = match[/* width */2];
+      var height = card[/* height */3];
+      var width = card[/* width */2];
       var object_factory = scene.add;
       var overlay = object_factory.graphics();
       overlay.fillStyle(parseInt("757575", 16), 0.5);
@@ -372,7 +382,7 @@ function isTurn($staropt$star, param) {
 }
 
 function finish_turn(x, y) {
-  Utils.for_each_matrix_with_index(board, (function (i, j, slot) {
+  Utils.for_each_matrix_with_index(Belt_Option.getExn(board[0]), (function (i, j, slot) {
           if (slot[/* state */3] === /* NEW */2) {
             return set_board(i, j, /* record */[
                         /* value */slot[/* value */0],
@@ -424,14 +434,14 @@ function find_match(param) {
 }
 
 function handle_slot_clicked(x, y) {
-  var match = Utils.get_unsafe(board, x, y);
+  var match = get_board(x, y);
   var state = match[/* state */3];
   if (state !== /* LOCKED */3 && state !== /* NEW */2) {
     var match$1 = modify_slot(x, y);
     var new_state = match$1[1];
     var new_sprite = new_state === /* EMPTY */0 ? (destroy_sprite_safe(match[/* sprite */4]), undefined) : Caml_option.some(draw_marble_in_zone(match[/* zone */1]));
     finish_turn(x, y);
-    var init = Utils.get_unsafe(board, x, y);
+    var init = get_board(x, y);
     set_board(x, y, /* record */[
           /* value */match$1[0],
           /* zone */init[/* zone */1],
@@ -441,7 +451,19 @@ function handle_slot_clicked(x, y) {
         ]);
     var match_idx = find_match(/* () */0);
     if (match_idx !== -1) {
-      return draw_done_overlay(match_idx);
+      var cur_card = Belt_Array.getExn(cards, match_idx);
+      if (cur_card[/* is_done */0]) {
+        return /* () */0;
+      } else {
+        Curry._1(config[0][/* dec_score */6], config[0][/* state */0][/* id */2]);
+        draw_done_overlay(cur_card);
+        return Belt_Array.setExn(cards, match_idx, /* record */[
+                    /* is_done */true,
+                    /* container */cur_card[/* container */1],
+                    /* width */cur_card[/* width */2],
+                    /* height */cur_card[/* height */3]
+                  ]);
+      }
     } else {
       return 0;
     }
@@ -466,7 +488,7 @@ function add_board_events(param) {
       return /* () */0;
     }
   };
-  return Utils.for_each_matrix_with_index(board, add_click_callback);
+  return Utils.for_each_matrix_with_index(Belt_Option.getExn(board[0]), add_click_callback);
 }
 
 function create(param) {
@@ -491,19 +513,14 @@ function handle_move(move) {
   }
 }
 
-function update_scores(param) {
-  var match = scores[0];
-  if (match !== undefined) {
-    return Belt_Array.forEach(match, (function (param) {
-                  param[1].setFontStyle(isTurn(param[0], /* () */0) ? "bold" : "");
-                  return /* () */0;
-                }));
-  } else {
-    return /* () */0;
-  }
+function create_board(param) {
+  return Utils.map_matrix(Utils.get_n_m_board(6, 6, 0), (function (param) {
+                return create_board_entry(undefined, undefined, undefined, undefined, undefined, /* () */0);
+              }));
 }
 
 function init(_config) {
+  board[0] = create_board(/* () */0);
   config[0] = _config;
   Curry._2(config[0][/* subscribe */1], State.move_event, (function (state) {
           handle_move(state[/* last_move */0]);
@@ -514,12 +531,13 @@ function init(_config) {
             /* send_move */init[/* send_move */2],
             /* send_winner */init[/* send_winner */3],
             /* handle_register */init[/* handle_register */4],
-            /* send_start */init[/* send_start */5]
+            /* send_start */init[/* send_start */5],
+            /* dec_score */init[/* dec_score */6],
+            /* unsubscribe */init[/* unsubscribe */7]
           ];
           return /* () */0;
         }));
-  Curry._2(config[0][/* subscribe */1], State.winner_event, (function (state) {
-          console.log("winner");
+  Curry._2(config[0][/* subscribe */1], State.players_event, (function (state) {
           var init = config[0];
           config[0] = /* record */[
             /* state */state,
@@ -527,7 +545,23 @@ function init(_config) {
             /* send_move */init[/* send_move */2],
             /* send_winner */init[/* send_winner */3],
             /* handle_register */init[/* handle_register */4],
-            /* send_start */init[/* send_start */5]
+            /* send_start */init[/* send_start */5],
+            /* dec_score */init[/* dec_score */6],
+            /* unsubscribe */init[/* unsubscribe */7]
+          ];
+          return /* () */0;
+        }));
+  Curry._2(config[0][/* subscribe */1], State.winner_event, (function (state) {
+          var init = config[0];
+          config[0] = /* record */[
+            /* state */state,
+            /* subscribe */init[/* subscribe */1],
+            /* send_move */init[/* send_move */2],
+            /* send_winner */init[/* send_winner */3],
+            /* handle_register */init[/* handle_register */4],
+            /* send_start */init[/* send_start */5],
+            /* dec_score */init[/* dec_score */6],
+            /* unsubscribe */init[/* unsubscribe */7]
           ];
           var manager = scene.game.scene;
           manager.stop("board");
@@ -538,7 +572,22 @@ function init(_config) {
 }
 
 function update(param) {
-  return update_scores(/* () */0);
+  var match = scores[0];
+  if (match !== undefined) {
+    return Belt_Array.forEachWithIndex(match, (function (idx, param) {
+                  var text = param[1];
+                  var id = param[0];
+                  text.setFontStyle(isTurn(id, /* () */0) ? "bold" : "");
+                  var name_text = "Player " + String(idx + 1 | 0);
+                  var cur_player = Belt_Array.getExn(config[0][/* state */0][/* players */1], idx);
+                  text.text = name_text + (": " + (String(cur_player[/* score */1]) + (
+                        id === config[0][/* state */0][/* id */2] ? " (me)" : ""
+                      )));
+                  return /* () */0;
+                }));
+  } else {
+    return /* () */0;
+  }
 }
 
 var state = State.init(/* () */0);
@@ -558,6 +607,7 @@ var grid_h = 6;
 var listeners = Belt_MapString.empty;
 
 export {
+  BOARD_ERROR ,
   scene ,
   grid_w ,
   grid_h ,
@@ -596,7 +646,7 @@ export {
   add_board_events ,
   create ,
   handle_move ,
-  update_scores ,
+  create_board ,
   init ,
   update ,
   state ,

@@ -88,6 +88,13 @@ let send_move x y =
     (Js.Json.object_ move_dict |. Js.Json.stringify |. Js.Json.string) ;
   send_js_dict move_msg
 
+let dec_score id =
+  Js.log "dec" ;
+  let score_msg = Js.Dict.empty () in
+  Js.Dict.set score_msg "type" (Js.Json.string "SCORE") ;
+  Js.Dict.set score_msg "id" (Js.Json.string id) ;
+  send_js_dict score_msg
+
 let send_winner id =
   let winner_msg = Js.Dict.empty () in
   Js.Dict.set winner_msg "type" (Js.Json.string "WINNER") ;
@@ -99,7 +106,10 @@ let subscribe _event fn =
     State.subscribe !listeners _event (fun state -> fn state)
   in
   listeners := _listeners ;
-  idx
+  _event, idx
+
+let unsubscribe _event idx = 
+  listeners := State.unsubscribe !listeners _event idx
 
 let scene_config =
   { Utils.state= !game_state
@@ -107,7 +117,9 @@ let scene_config =
   ; send_move
   ; send_winner
   ; handle_register
-  ; send_start }
+  ; send_start
+  ; dec_score
+  ; unsubscribe }
 
 let handle_open () =
   let manager = sceneGet game in

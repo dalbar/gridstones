@@ -18,25 +18,46 @@ const broadcast = message => {
 }
 
 const hanldeMessage = (message, ws) => {
-  console.log(message)
   switch (message.type) {
     case "REGISTER":
       if (gameState !== "start" && players.size < 4) handleRegister(ws);
       ws.send(JSON.stringify({ type: "PHASE", phase: gameState }));
       break;
     case "PHASE":
-      console.log(message)
       if (message.phase === "start") handleStart();
       break;
     case "MOVE":
       const move = JSON.parse(message.move);
       handleMove(move);
       break;
-    case "WINNER":
-      broadcast(JSON.stringify(message));
-      handleWinner();
+    case "SCORE": 
+      const {id } = message;
+      handleScore(id)
       break;
   }
+}
+
+const handleScore = id => {
+  const cur_player = players.get(id);
+  if (cur_player.score === 1) handleWinner(id)
+  else {
+    players.set(id, Object.assign({}, cur_player, { score: cur_player.score - 1}));
+    broadcastAllPlayers();
+  }
+}
+
+const handleWinner = id => {
+  players.forEach((v, i) => players.set(i, Object.assign({}, v, {score: 5})));
+  broadcast(JSON.stringify({type: "WINNER", id}));
+  playOrder.splice(0, playOrder.length);
+  gameState = "waiting"
+}
+
+const handleClose = ws => {
+  const { playerID } = ws;
+  players.delete(playerID);
+  handleWinner("");
+  broadcastAllPlayers();
 }
 
 const filterGameRelevant = ({ id, score }) => {
@@ -92,15 +113,7 @@ broadcastAllPlayers = () => {
   broadcast(JSON.stringify({ type: "PLAYERS", players: gameRelevantMessage }));
 }
 
-const handleWinner = () => {
-  playOrder.splice(0, playOrder.length);
-  gameState = "waiting"
-}
-const handleClose = ws => {
-  const { playerID } = ws;
-  players.delete(playerID);
-  handleWinner();
-}
+
 
 wss.on('connection', function connection(ws) {
   ws.on('message', function incoming(message) {

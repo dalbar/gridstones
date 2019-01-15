@@ -139,10 +139,13 @@ function get_board_idx(x, y, grid_h) {
   return y * grid_h + x;
 }
 
-function init_config($staropt$star, $staropt$star$1, $staropt$star$2, $staropt$star$3, $staropt$star$4, $staropt$star$5, param) {
+function init_config($staropt$star, $staropt$star$1, $staropt$star$2, $staropt$star$3, $staropt$star$4, $staropt$star$5, $staropt$star$6, $staropt$star$7, param) {
   var state = $staropt$star !== undefined ? $staropt$star : State.init(/* () */0);
   var subscribe = $staropt$star$1 !== undefined ? $staropt$star$1 : (function (param, param$1) {
-        return -1;
+        return /* tuple */[
+                "",
+                -1
+              ];
       });
   var send_move = $staropt$star$2 !== undefined ? $staropt$star$2 : (function (param, param$1) {
         return /* () */0;
@@ -156,13 +159,21 @@ function init_config($staropt$star, $staropt$star$1, $staropt$star$2, $staropt$s
   var send_start = $staropt$star$5 !== undefined ? $staropt$star$5 : (function (param) {
         return /* () */0;
       });
+  var dec_score = $staropt$star$6 !== undefined ? $staropt$star$6 : (function (param) {
+        return /* () */0;
+      });
+  var unsubscribe = $staropt$star$7 !== undefined ? $staropt$star$7 : (function (param, param$1) {
+        return /* () */0;
+      });
   return /* record */[
           /* state */state,
           /* subscribe */subscribe,
           /* send_move */send_move,
           /* send_winner */send_winner,
           /* handle_register */handle_register,
-          /* send_start */send_start
+          /* send_start */send_start,
+          /* dec_score */dec_score,
+          /* unsubscribe */unsubscribe
         ];
 }
 

@@ -5,20 +5,40 @@ import * as State from "./state.bs.js";
 import * as Utils from "./utils.bs.js";
 import * as Phaser from "phaser";
 import * as Caml_option from "../../node_modules/bs-platform/lib/es6/caml_option.js";
+import * as Belt_MutableStack from "../../node_modules/bs-platform/lib/es6/belt_MutableStack.js";
 
 var scene = new Phaser.Scene("menu");
 
-var config = /* record */[/* contents */Utils.init_config(undefined, undefined, undefined, undefined, undefined, undefined, /* () */0)];
+var config = /* record */[/* contents */Utils.init_config(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, /* () */0)];
 
 var start_button = /* record */[/* contents */undefined];
 
 var player_count = /* record */[/* contents */undefined];
 
+var subs = Belt_MutableStack.make(/* () */0);
+
+function unsubscribe(param) {
+  var _param = /* () */0;
+  while(true) {
+    var match = Belt_MutableStack.pop(subs);
+    if (match !== undefined) {
+      var match$1 = match;
+      Curry._2(config[0][/* unsubscribe */7], match$1[0], match$1[1]);
+      _param = /* () */0;
+      continue ;
+    } else {
+      return /* () */0;
+    }
+  };
+}
+
 function start_game(param) {
+  console.log("running");
   if (param[/* phase */3] === "start") {
     if (param[/* id */2] !== "") {
       var m = scene.game.scene;
       m.stop("menu");
+      m.stop("end");
       m.start("board", config[0]);
       return /* () */0;
     } else {
@@ -68,7 +88,9 @@ function init(_config) {
       /* send_move */init[/* send_move */2],
       /* send_winner */init[/* send_winner */3],
       /* handle_register */init[/* handle_register */4],
-      /* send_start */init[/* send_start */5]
+      /* send_start */init[/* send_start */5],
+      /* dec_score */init[/* dec_score */6],
+      /* unsubscribe */init[/* unsubscribe */7]
     ];
     return /* () */0;
   };
@@ -76,11 +98,14 @@ function init(_config) {
   if (config[0][/* state */0][/* id */2] === "") {
     Curry._1(config[0][/* handle_register */4], /* () */0);
   }
-  Curry._2(config[0][/* subscribe */1], State.players_event, update_state);
-  Curry._2(config[0][/* subscribe */1], State.id_event, update_state);
-  Curry._2(config[0][/* subscribe */1], State.hand_event, update_state);
-  Curry._2(config[0][/* subscribe */1], State.phase_event, start_game);
-  return /* () */0;
+  var t = Curry._2(config[0][/* subscribe */1], State.players_event, update_state);
+  Belt_MutableStack.push(subs, t);
+  var t$1 = Curry._2(config[0][/* subscribe */1], State.id_event, update_state);
+  Belt_MutableStack.push(subs, t$1);
+  var t$2 = Curry._2(config[0][/* subscribe */1], State.hand_event, update_state);
+  Belt_MutableStack.push(subs, t$2);
+  var t$3 = Curry._2(config[0][/* subscribe */1], State.phase_event, start_game);
+  return Belt_MutableStack.push(subs, t$3);
 }
 
 function update(param) {
@@ -104,6 +129,8 @@ export {
   config ,
   start_button ,
   player_count ,
+  subs ,
+  unsubscribe ,
   start_game ,
   create ,
   init ,

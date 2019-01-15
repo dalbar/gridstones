@@ -99,6 +99,14 @@ function send_move(x, y) {
   return send_js_dict(move_msg);
 }
 
+function dec_score(id) {
+  console.log("dec");
+  var score_msg = { };
+  score_msg["type"] = "SCORE";
+  score_msg["id"] = id;
+  return send_js_dict(score_msg);
+}
+
 function send_winner(id) {
   var winner_msg = { };
   winner_msg["type"] = "WINNER";
@@ -109,7 +117,15 @@ function send_winner(id) {
 function subscribe(_event, fn) {
   var match = State.subscribe(listeners[0], _event, Curry.__1(fn));
   listeners[0] = match[0];
-  return match[1];
+  return /* tuple */[
+          _event,
+          match[1]
+        ];
+}
+
+function unsubscribe(_event, idx) {
+  listeners[0] = State.unsubscribe(listeners[0], _event, idx);
+  return /* () */0;
 }
 
 var scene_config_000 = /* state */game_state[0];
@@ -120,7 +136,9 @@ var scene_config = /* record */[
   /* send_move */send_move,
   /* send_winner */send_winner,
   /* handle_register */handle_register,
-  /* send_start */send_start
+  /* send_start */send_start,
+  /* dec_score */dec_score,
+  /* unsubscribe */unsubscribe
 ];
 
 function handle_open(param) {
@@ -153,8 +171,10 @@ export {
   handle_register ,
   send_start ,
   send_move ,
+  dec_score ,
   send_winner ,
   subscribe ,
+  unsubscribe ,
   scene_config ,
   handle_open ,
   

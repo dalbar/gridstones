@@ -3,10 +3,11 @@ open Phaser
 open Utils
 open GameObject
 
+exception BOARD_ERROR of string
+
 let scene = Scene.create "board"
 
 type states = EMPTY | PLACED | NEW | LOCKED
-
 
 type board_entry =
   { value: int
@@ -30,18 +31,16 @@ let create_board_entry ?(value = 0) ?(zone = None) ?(graphics = None)
   {value; zone; graphics; state; sprite}
 
 
-let board  =
-  get_n_m_board grid_h grid_w 0
-  |. map_matrix (fun _ -> create_board_entry ())
+let board: board_entry array array option ref = ref None
 
 type card = { is_done: bool; container: Container.container option; width: float; height: float }
 
 let cards = 
   Array.make 5 {is_done = false; container = None; width = 0. ; height = 0. }
 
-let set_board x y value = set_unsafe board x y value
+let set_board x y value = match !board with | Some board -> set_unsafe board x y value | None -> ()
 
-let get_board x y = get_unsafe board x y
+let get_board x y = match !board with | Some board -> get_unsafe board x y | None -> raise @@ BOARD_ERROR "no entry fond" 
 
 let scores: (string * Text.text) array option ref = ref None
 
@@ -50,7 +49,7 @@ let has_match pattern =
     Array.concatMany pattern
     |. Array.reduce 0. (fun acc slot -> if slot = 1. then acc +. 1. else acc)
   in
-  let board_matrix = Utils.map_matrix board (fun entry -> float_of_int entry.value) in
+  let board_matrix = Option.getExn !board |. Utils.map_matrix (fun entry -> float_of_int entry.value) in
   conv board_matrix pattern
   |. Array.concatMany
   |. Array.some (fun e -> e = num_stones)
@@ -164,9 +163,7 @@ let create_scores () =
   let _scores = 
     Array.copy !config.state.players
     |. Array.mapWithIndex (fun idx player ->
-          let text = "Player " ^ string_of_int (idx + 1) ^
-            if player.id = !config.state.id then " (me)" else "" in
-          player.id, text_with_style object_factory 16 (16 + (16 * idx)) text style ) in
+          player.id, text_with_style object_factory 16 (16 + (16 * idx)) "" style ) in
   scores := Some _scores
 
 let create_sprite factory key x y w h = 
@@ -220,8 +217,8 @@ let draw_card scene pattern x y w h =
 let get_card idx = 
   Array.getExn cards idx 
 
-let draw_done_overlay idx = 
-  let { is_done; width; height; container } = get_card idx in
+let draw_done_overlay card = 
+  let { is_done; width; height; container } = card in
   match container with 
   | None -> Js.log "no container"
   | Some container ->
@@ -252,7 +249,7 @@ let draw_hand w h =
 let isTurn ?(id = !config.state.id ) () = id = !config.state.last_move.next_player
 
 let finish_turn x y = 
-  for_each_matrix_with_index board (fun i j slot -> 
+  Option.getExn !board |. for_each_matrix_with_index (fun i j slot -> 
     if slot.state = NEW then set_board i j { slot with state = PLACED };
   );
   if isTurn () then !config.send_move x y
@@ -291,8 +288,15 @@ let handle_slot_clicked x y =
     finish_turn (float_of_int x) (float_of_int y);
     set_board x y { (get_board x y) with state = new_state; value = new_value; sprite = new_sprite};  
     let match_idx = find_match () in
-    if match_idx <> -1 then draw_done_overlay match_idx
-    
+    if match_idx <> -1 then (
+      let cur_card = Array.getExn cards match_idx in
+      if cur_card.is_done then () 
+      else (
+        !config.dec_score !config.state.id;
+        draw_done_overlay cur_card;
+        Array.setExn cards match_idx { cur_card with is_done = true}
+      )
+    )
 let add_board_events () =
   let add_click_callback i j slot =
     match slot.zone with
@@ -300,13 +304,13 @@ let add_board_events () =
         (fun _ -> if isTurn () then handle_slot_clicked i j)
     | _ -> ()
   in
-  for_each_matrix_with_index board add_click_callback
+  Option.getExn !board |. for_each_matrix_with_index add_click_callback
 
 let create () =
   let w, h = get_game_dim () in
   let width = w *. 0.8 in
   draw_board ~x_offset:(0.1 *. w) ~y_offset:(0.15 *. h) width;
-  let _ = create_scores () in
+  create_scores ();
   restrict_board ();
   add_board_events ();
   draw_hand w h
@@ -317,20 +321,19 @@ let handle_move move =
   if x > 0 && y > 0 && isTurn () = false 
     then handle_slot_clicked x y
 
-let update_scores () = 
-  match !scores with 
-  | Some scores -> Array.forEach scores (fun (id, text) -> 
-      Text.set_font_style text (if isTurn ~id:id () then "bold" else "")
-      )
-  | None -> ()
-
+let create_board () = 
+  get_n_m_board grid_h grid_w 0
+    |. map_matrix (fun _ -> create_board_entry ())
 let init _config =
+  board := Some (create_board ());
   config := _config ;
   let _ = !config.subscribe State.move_event (fun state -> 
     handle_move state.last_move;
     config := { !config with state }) in
+  let _= !config.subscribe State.players_event (fun state -> 
+    config := { !config with state}
+  ) in
   let _ = !config.subscribe State.winner_event (fun state -> 
-    Js.log "winner";
     config := { !config with state };
     let manager =  Scene.gameGet scene |. sceneGet in
     SceneManager.stop manager "board";
@@ -338,7 +341,17 @@ let init _config =
   ) in
   ()
 
-let update () = 
+let update () =
+  let update_scores () = 
+  match !scores with 
+  | Some scores -> Array.forEachWithIndex scores (fun idx (id, text) -> 
+      Text.set_font_style text (if isTurn ~id:id () then "bold" else "");
+      let name_text = "Player " ^ string_of_int (idx + 1) in
+      let cur_player = Array.getExn !config.state.players idx in
+      Text.textSet text 
+        (name_text ^ ": " ^ (string_of_int cur_player.score) ^ (if id = !config.state.id then " (me)" else "" ));
+      )
+  | None -> () in
   update_scores ()
 
 let state = State.init ()
