@@ -1,5 +1,6 @@
 open Belt
-open Node.Fs
+
+(* running on standalone package and this file; a single file is not possible because nodejs is required to write the acutal deck *)
 
 exception DIM of string
 
@@ -82,8 +83,6 @@ let generate_pattern ?(min_stones = 0) size max_stones =
   |. List.keep (fun array -> num_stones_pred array min_stones max_stones)
   |. List.map (fun matrix -> shape_quad size matrix)
 
-let write_deck deck dest = writeFileSync dest deck `ascii
-
 let rot90_square matrix =
   let dim = Array.length matrix in
   let rotated = Array.make dim (-1.) |. Array.map (Array.make dim) in
@@ -133,11 +132,3 @@ let filter_rot_equal matrices =
   let not_rot_equal = List.make 0 (make_n_m_matrix 0 0) in
   List.reduce matrices not_rot_equal (fun acc row ->
       if List.has acc row is_rot_equal then acc else List.add acc row )
-
-let generate_s_min_max s min max =
-  let deck_string = generate_pattern ~min_stones:min s max 
-    |. filter_rot_equal 
-    |. List.map (fun pattern -> Js_json.stringifyAny pattern 
-    |. Option.getExn) |> String.concat ",\n" in
-  Printf.sprintf "const create_deck = () => [ %s ]\nmodule.exports = { createDeck : create_deck};" deck_string
-  |. write_deck (Printf.sprintf "deck_%d_%d_%d.js" s min max)
